@@ -35,7 +35,7 @@ if [ "${1}" = "--version" -o "${1}" = "version" ] ; then
 fi
 
 # Auto UUID
-uuid=$(uuidgen)
+uuid=$(uuidgen | sed -r 's/^.{19}//')
 
 # pkg list, only used with the create subcommand
 pkglist="none"
@@ -132,7 +132,7 @@ type="jail"
 release=$(uname -r|cut -f 1,2 -d'-')
 hostid=$(cat /etc/hostid)
 jail_zfs="off"
-jail_zfs_dataset="iocage/jails/${uuid}/root/data"
+jail_zfs_dataset="ioc/j/${uuid}/root/data"
 mount_procfs="0"
 
 # Native ZFS properties
@@ -411,7 +411,7 @@ __print_release () {
 
 # Fetch release and prepare base ZFS filesystems-----------
 __fetch_release () {
-    local exist=$(zfs list | grep -w ^$pool/iocage)
+    local exist=$(zfs list | grep -w ^$pool/ioc)
     __print_release
     echo -n "Please select a release [$release]: "
     read answer
@@ -434,24 +434,24 @@ __fetch_release () {
         exit 1
     fi
   
-    local exist=$(zfs list | grep -w ^$pool/iocage)
-    local download_exist=$(zfs list | grep -w ^$pool/iocage/download/$release)
-    local rel_exist=$(zfs list | grep -w ^$pool/iocage/releases/$release)
+    local exist=$(zfs list | grep -w ^$pool/ioc)
+    local download_exist=$(zfs list | grep -w ^$pool/ioc/dld/$release)
+    local rel_exist=$(zfs list | grep -w ^$pool/ioc/rel/$release)
 
     if [ -z "$exist" ] ; then
-        zfs create $pool/iocage
-        zfs set mountpoint=/iocage $pool/iocage
-        zfs create $pool/iocage/jails
+        zfs create $pool/ioc
+        zfs set mountpoint=/ioc $pool/ioc
+        zfs create $pool/ioc/j
         zfs mount -a
     fi 
 
     if [ -z "$download_exist" ] ; then
-        zfs create -p $pool/iocage/download/$release
+        zfs create -p $pool/ioc/dld/$release
     fi
 
     ftpdir="/pub/FreeBSD/releases/amd64/$release"
 
-    cd /iocage/download/$release
+    cd /ioc/dld/$release
     for file in $ftpfiles ; do
         if [ ! -e "$file" ] ; then        
             fetch http://$ftphost$ftpdir/$file
@@ -459,29 +459,29 @@ __fetch_release () {
     done
 
     if [ -z "$rel_exist" ] ; then
-        zfs create -p $pool/iocage/releases/$release/root
+        zfs create -p $pool/ioc/rel/$release/root
     fi
 
     for file in $(echo $ftpfiles) ; do
         if [ -e "$file" ] ; then
             echo "Exctracting: $file"
-            tar -C /iocage/releases/$release/root -xf $file
+            tar -C /ioc/rel/$release/root -xf $file
         fi
     done
 
     if [ $release == "10.0-RELEASE" ] ; then
         __freebsd-update-fix
         cat /usr/local/sbin/ioc-freebsd-update \
-        > /iocage/releases/$release/root/usr/sbin/freebsd-update
+        > /ioc/rel/$release/root/usr/sbin/freebsd-update
 
         echo "* Updating base jail.."
         sleep 2
-        /usr/local/sbin/ioc-freebsd-update -b /iocage/releases/$release/root fetch
-        /usr/local/sbin/ioc-freebsd-update -b /iocage/releases/$release/root install
+        /usr/local/sbin/ioc-freebsd-update -b /ioc/rel/$release/root fetch
+        /usr/local/sbin/ioc-freebsd-update -b /ioc/rel/$release/root install
     fi
 
-    if [ ! -d /iocage/log ] ; then 
-        mkdir /iocage/log
+    if [ ! -d /ioc/log ] ; then 
+        mkdir /ioc/log
     fi
 
     rm -f /usr/local/sbin/ioc-freebsd-update
@@ -489,7 +489,7 @@ __fetch_release () {
 
 # This creates jails----------------------------------------------------
 __create_jail () {
-    local installed=$(zfs list -r $pool/iocage/releases|grep $release)
+    local installed=$(zfs list -r $pool/ioc/rel|grep $release)
 
     if [ -z "$installed" ] ; then
         echo "Release $release not found locally, run fetch first"
@@ -497,33 +497,33 @@ __create_jail () {
     fi
 
     if [ "${2}" = "-c" ] ; then
-        fs_list=$(zfs list -rH -o name $pool/iocage/releases/$release)
+        fs_list=$(zfs list -rH -o name $pool/ioc/rel/$release)
 
-        zfs snapshot -r $pool/iocage/releases/$release@$uuid
+        zfs snapshot -r $pool/ioc/rel/$release@$uuid
         for fs in $fs_list ; do
             cfs=$(echo $fs | sed s#/releases/$release#/jails/$uuid#g)
             #echo "cloning $fs into $cfs"
             zfs clone $fs@$uuid $cfs
         done
     elif [ "${2}" = "-e" ] ; then
-        zfs create -p $pool/iocage/jails/$uuid/root
+        zfs create -p $pool/ioc/j/$uuid/root
     else
-        zfs snapshot -r $pool/iocage/releases/$release@$uuid
-        zfs send     -R $pool/iocage/releases/$release@$uuid | \
-        zfs recv        $pool/iocage/jails/$uuid
-        zfs destroy  -r $pool/iocage/releases/$release@$uuid
-        zfs destroy  -r $pool/iocage/jails/$uuid@$uuid
+        zfs snapshot -r $pool/ioc/rel/$release@$uuid
+        zfs send     -R $pool/ioc/rel/$release@$uuid | \
+        zfs recv        $pool/ioc/j/$uuid
+        zfs destroy  -r $pool/ioc/rel/$release@$uuid
+        zfs destroy  -r $pool/ioc/j/$uuid@$uuid
     fi
 
-    __configure_jail $pool/iocage/jails/$uuid
-    touch /iocage/jails/$uuid/fstab
+    __configure_jail $pool/ioc/j/$uuid
+    touch /ioc/j/$uuid/fstab
 
     # at create time set the default rc.conf
     if [ "${2}" != "-e" ] ; then
-        echo "hostname=${uuid}" > /iocage/jails/${uuid}/root/etc/rc.conf
+        echo "hostname=${uuid}" > /ioc/j/${uuid}/root/etc/rc.conf
         __jail_rc_conf >> \
-        /iocage/jails/${uuid}/root/etc/rc.conf
-        __resolv_conf > /iocage/jails/${uuid}/root/etc/resolv.conf
+        /ioc/j/${uuid}/root/etc/rc.conf
+        __resolv_conf > /ioc/j/${uuid}/root/etc/resolv.conf
     elif [ "${2}" = "-e" ] ; then
         echo $uuid
     fi
@@ -535,7 +535,7 @@ __create_jail () {
     # Install extra packages
     # this requires working resolv.conf in jail
     if [ "$pkglist" != "none" ] ; then
-        __pkg_install "/iocage/jails/${uuid}/root"
+        __pkg_install "/ioc/j/${uuid}/root"
     fi
 }
 
@@ -566,26 +566,26 @@ __clone_jail () {
     if [ -z "$snapshot" ] ; then
         zfs snapshot -r ${dataset}@${uuid}
         for fs in $fs_list ; do
-            cfs="$(echo $fs | sed s#$dataset#$pool/iocage/jails/$uuid#g)"
+            cfs="$(echo $fs | sed s#$dataset#$pool/ioc/j/$uuid#g)"
             zfs clone $fs@$uuid $cfs
         done
     else
         for fs in $fs_list ; do
-            cfs="$(echo $fs | sed s#$dataset#$pool/iocage/jails/$uuid#g)"
+            cfs="$(echo $fs | sed s#$dataset#$pool/ioc/j/$uuid#g)"
             zfs clone $fs@$snapshot $cfs
         done
     fi
 
-    __configure_jail $pool/iocage/jails/$uuid
-    mv /iocage/jails/$uuid/fstab /iocage/jails/$uuid/fstab.$name
-    touch /iocage/jails/$uuid/fstab
+    __configure_jail $pool/ioc/j/$uuid
+    mv /ioc/j/$uuid/fstab /ioc/j/$uuid/fstab.$name
+    touch /ioc/j/$uuid/fstab
 
-    cat /iocage/jails/${uuid}/root/etc/rc.conf | \
+    cat /ioc/j/${uuid}/root/etc/rc.conf | \
     sed -E "s/[a-zA-Z0-9]{8,}-.*-.*-.*-[a-zA-Z0-9]{12,}/$uuid/g" \
-    > /iocage/jails/${uuid}/rc.conf
+    > /ioc/j/${uuid}/rc.conf
 
-    mv /iocage/jails/${uuid}/rc.conf \
-    /iocage/jails/${uuid}/root/etc/rc.conf
+    mv /ioc/j/${uuid}/rc.conf \
+    /ioc/j/${uuid}/root/etc/rc.conf
 }
 
 # Destroy jails --------------------------------------------------------------
@@ -847,9 +847,9 @@ __get_jail_name () {
 __find_jail () {
     local name=$1
     local jlist="/tmp/iocage-jail-list.$$"
-    local jails="$(zfs list -rH -o name $pool/iocage/jails \
+    local jails="$(zfs list -rH -o name $pool/ioc/jails \
                  | grep -E \
-                "^$pool/iocage/jails/[a-zA-Z0-9]{8,}-.*-.*-.*-[a-zA-Z0-9]{12,}$")"
+                "^$pool/ioc/jails/[a-zA-Z0-9]{8,}-.*-.*-.*-[a-zA-Z0-9]{12,}$")"
 
     if [ "${name}" == "ALL" ] ; then
         for jail in $jails ; do
@@ -857,7 +857,7 @@ __find_jail () {
         done
     else
         for jail in $jails ; do
-            found="$(echo $jail |grep -iE "^$pool/iocage/jails/$name"|wc -l)"
+            found="$(echo $jail |grep -iE "^$pool/ioc/jails/$name"|wc -l)"
             if [ "$found" -eq 1 ] ; then
                 echo $jail >> $jlist
             fi
@@ -938,7 +938,7 @@ __start_jail () {
     fi
 
     if [ "$procfs" == "1" ] ; then
-        mount -t procfs proc /iocage/jails/${fulluuid}/root/proc
+        mount -t procfs proc /ioc/j/${fulluuid}/root/proc
     fi
 
     local jzfs="$(__get_jail_prop jail_zfs $fulluuid)"
@@ -1004,7 +1004,7 @@ __start_jail () {
 
     echo -n "  + Starting services" 
     jexec ioc-${fulluuid} $(__get_jail_prop exec_start $fulluuid) \
-     >> /iocage/log/${fulluuid}-console.log 2>&1
+     >> /ioc/log/${fulluuid}-console.log 2>&1
 
     if [ $? -eq 1 ] ; then
         echo "        FAILED"
@@ -1053,11 +1053,11 @@ __vnet_start () {
     exec.clean="$(__get_jail_prop exec_clean $name)" \
     exec.timeout="$(__get_jail_prop exec_timeout $name)" \
     stop.timeout="$(__get_jail_prop stop_timeout $name)" \
-    mount.fstab="/iocage/jails/$name/fstab" \
+    mount.fstab="/ioc/j/$name/fstab" \
     mount.devfs="$(__get_jail_prop mount_devfs $name)" \
     mount.fdescfs="$(__get_jail_prop mount_fdescfs $name)" \
     allow.dying \
-    exec.consolelog="/iocage/log/${name}-console.log" \
+    exec.consolelog="/ioc/log/${name}-console.log" \
     persist
 }
 
@@ -1110,11 +1110,11 @@ __legacy_start () {
     exec.clean="$(__get_jail_prop exec_clean $name)" \
     exec.timeout="$(__get_jail_prop exec_timeout $name)" \
     stop.timeout="$(__get_jail_prop stop_timeout $name)" \
-    mount.fstab="/iocage/jails/$name/fstab" \
+    mount.fstab="/ioc/j/$name/fstab" \
     mount.devfs="$(__get_jail_prop mount_devfs $name)" \
     mount.fdescfs="$(__get_jail_prop mount_fdescfs $name)" \
     allow.dying \
-    exec.consolelog="/iocage/log/${name}-console.log" \
+    exec.consolelog="/ioc/log/${name}-console.log" \
     persist
 }
 
@@ -1164,7 +1164,7 @@ __stop_jail () {
 
     echo -n "  + Stopping services"
 
-    jexec ioc-${fulluuid} $exec_stop >> /iocage/log/${fulluuid}-console.log 2>&1
+    jexec ioc-${fulluuid} $exec_stop >> /ioc/log/${fulluuid}-console.log 2>&1
 
     if [ $? -ne 1 ] ; then
         echo "        OK"
@@ -1201,13 +1201,13 @@ __stop_jail () {
         echo "    FAILED"
     fi
 
-    umount -afvF /iocage/jails/${fulluuid}/fstab > /dev/null 2>&1
-    umount /iocage/jails/${fulluuid}/root/dev/fd > /dev/null 2>&1
-    umount /iocage/jails/${fulluuid}/root/dev    > /dev/null 2>&1
-    umount /iocage/jails/${fulluuid}/root/proc   > /dev/null 2>&1
+    umount -afvF /ioc/j/${fulluuid}/fstab > /dev/null 2>&1
+    umount /ioc/j/${fulluuid}/root/dev/fd > /dev/null 2>&1
+    umount /ioc/j/${fulluuid}/root/dev    > /dev/null 2>&1
+    umount /ioc/j/${fulluuid}/root/proc   > /dev/null 2>&1
 
-    if [ -d /iocage/jails/${fulluuid}/recorded ] ; then
-        umount -ft unionfs /iocage/jails/${fulluuid}/root > /dev/null 2>&1
+    if [ -d /ioc/j/${fulluuid}/recorded ] ; then
+        umount -ft unionfs /ioc/j/${fulluuid}/root > /dev/null 2>&1
     fi
 
     if [ ! -z $(sysctl -qn kern.features.rctl) ] ; then
@@ -1246,11 +1246,11 @@ __restart_jail () {
     local tag="$(__get_jail_prop tag $fulluuid)"
 
     echo "* Soft restarting $fulluuid ($tag)"
-    jexec ioc-${fulluuid} $exec_stop >> /iocage/log/${fulluuid}-console.log 2>&1
+    jexec ioc-${fulluuid} $exec_stop >> /ioc/log/${fulluuid}-console.log 2>&1
 
     if [ $? -ne "1" ] ; then
         pkill -j $jid
-        jexec ioc-${fulluuid} $exec_start >> /iocage/log/${fulluuid}-console.log 2>&1
+        jexec ioc-${fulluuid} $exec_start >> /ioc/log/${fulluuid}-console.log 2>&1
         zfs set org.freebsd.iocage:last_started=$(date "+%F_%T") $dataset
     else
         echo "  ERROR: soft restart failed.."
@@ -1608,7 +1608,7 @@ __console () {
     local fulluuid="$(__check_name $name)"
 
     local login_flags=$(zfs get -H -o value org.freebsd.iocage:login_flags \
-                       $pool/iocage/jails/$fulluuid)
+                       $pool/ioc/j/$fulluuid)
 
     jexec ioc-${fulluuid} login $login_flags
 }
@@ -1636,7 +1636,7 @@ __chroot () {
 
     local fulluuid="$(__check_name $name)"
 
-    chroot /iocage/jails/${fulluuid}/root $command
+    chroot /ioc/j/${fulluuid}/root $command
 }
 
 
@@ -1926,7 +1926,7 @@ __record () {
         fi
 
     elif [ $action == "stop" ] ; then
-        umount -ft unionfs /iocage/jails/${fulluuid}/root > /dev/null 2>&1
+        umount -ft unionfs /ioc/j/${fulluuid}/root > /dev/null 2>&1
         echo "* Stopped recording to: ${mountpoint}/recorded"
 
         find ${mountpoint}/recorded/ -type d -empty -exec rm -rf {} \; \
@@ -1972,15 +1972,15 @@ __package () {
         exit 1
     fi
 
-    if [ ! -d "/iocage/packages" ] ; then
-        mkdir /iocage/packages
+    if [ ! -d "/ioc/pkg" ] ; then
+        mkdir /ioc/pkg
     fi
 
     echo "* Creating package..."
-    tar -cvJf /iocage/packages/$fulluuid.tar.xz -C ${mountpoint}/recorded . && \
-    sha256 -q /iocage/packages/$fulluuid.tar.xz > /iocage/packages/$fulluuid.sha256
-    echo "* Package saved to: /iocage/packages/$fulluuid.tar.xz"
-    echo "* Checksum created: /iocage/packages/$fulluuid.sha256"
+    tar -cvJf /ioc/pkg/$fulluuid.tar.xz -C ${mountpoint}/recorded . && \
+    sha256 -q /ioc/pkg/$fulluuid.tar.xz > /ioc/pkg/$fulluuid.sha256
+    echo "* Package saved to: /ioc/pkg/$fulluuid.tar.xz"
+    echo "* Checksum created: /ioc/pkg/$fulluuid.sha256"
 }
 
 __import () {
@@ -1991,8 +1991,8 @@ __import () {
         exit 1
     fi
 
-    local package="$(find /iocage/packages/ -name $name\*.tar.xz)"
-    local image="$(find /iocage/images/ -name $name\*.tar.xz)"
+    local package="$(find /ioc/pkg/ -name $name\*.tar.xz)"
+    local image="$(find /ioc/img/ -name $name\*.tar.xz)"
     local pcount="$(echo $package|wc -w)"
     local icount="$(echo $image|wc -w)"
 
@@ -2000,14 +2000,14 @@ __import () {
         echo "  ERROR: multiple matching packages, please narrow down UUID."
         exit 1
     elif [ $pcount -eq 1 ] ; then
-        local pcksum="$(find /iocage/packages/ -name $name\*.sha256)"
+        local pcksum="$(find /ioc/pkg/ -name $name\*.sha256)"
     fi
 
     if [ $icount -gt 1 ] ; then
         echo "  ERROR: multiple matching images, please narrow down UUID."
         exit 1
     elif [ $icount -eq 1 ] ; then
-        local icksum="$(find /iocage/images/ -name $name\*.sha256)"
+        local icksum="$(find /ioc/img/ -name $name\*.sha256)"
     fi
 
     if [ $pcount -gt 0 ] && [ $icount -gt 0 ] ; then
@@ -2062,12 +2062,12 @@ __import () {
         exit 1
     fi
 
-    cat /iocage/jails/${uuid}/root/etc/rc.conf | \
+    cat /ioc/j/${uuid}/root/etc/rc.conf | \
     sed -E "s/[a-zA-Z0-9]{8,}-.*-.*-.*-[a-zA-Z0-9]{12,}/$uuid/g" \
-    > /iocage/jails/${uuid}/rc.conf
+    > /ioc/j/${uuid}/rc.conf
 
-    mv /iocage/jails/${uuid}/rc.conf \
-    /iocage/jails/${uuid}/root/etc/rc.conf
+    mv /ioc/j/${uuid}/rc.conf \
+    /ioc/j/${uuid}/root/etc/rc.conf
 }
 
 __export () {
@@ -2103,15 +2103,15 @@ __export () {
 
     local mountpoint="$(__get_jail_prop mountpoint $fulluuid)"
 
-    if [ ! -d "/iocage/images" ] ; then
-        mkdir /iocage/images
+    if [ ! -d "/ioc/img" ] ; then
+        mkdir /ioc/img
     fi
 
     echo "* Exporting $fulluuid .."
-    tar -cvJf /iocage/images/$fulluuid.tar.xz -C ${mountpoint}/root . && \
-    sha256 -q /iocage/images/$fulluuid.tar.xz > /iocage/images/$fulluuid.sha256
-    echo "* Image saved to: /iocage/images/$fulluuid.tar.xz"
-    echo "* Checksum created: /iocage/images/$fulluuid.sha256"
+    tar -cvJf /ioc/img/$fulluuid.tar.xz -C ${mountpoint}/root . && \
+    sha256 -q /ioc/img/$fulluuid.tar.xz > /ioc/img/$fulluuid.sha256
+    echo "* Image saved to: /ioc/img/$fulluuid.tar.xz"
+    echo "* Checksum created: /ioc/img/$fulluuid.sha256"
 
 }
 
