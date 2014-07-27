@@ -37,6 +37,7 @@ fi
 # Auto UUID
 uuid=$(uuidgen | cut -c 1-13)
 
+
 # pkg list, only used with the create subcommand
 pkglist="none"
 
@@ -131,6 +132,7 @@ last_started="none"
 type="jail"
 release=$(uname -r|cut -f 1,2 -d'-')
 hostid=$(cat /etc/hostid)
+mypool_file=/etc/ioc-mypool
 jail_zfs="off"
 jail_zfs_dataset="ioc/j/${uuid}/root/data"
 mount_procfs="0"
@@ -435,8 +437,8 @@ __fetch_release () {
     fi
   
     local exist=$(zfs list | grep -w ^$pool/ioc)
-    local download_exist=$(zfs list | grep -w ^$pool/ioc/dld/$release)
-    local rel_exist=$(zfs list | grep -w ^$pool/ioc/rel/$release)
+    local download_exist=$(zfs list | grep -w ^$pool/ioc/d/$release)
+    local rel_exist=$(zfs list | grep -w ^$pool/ioc/r/$release)
 
     if [ -z "$exist" ] ; then
         zfs create $pool/ioc
@@ -446,12 +448,12 @@ __fetch_release () {
     fi 
 
     if [ -z "$download_exist" ] ; then
-        zfs create -p $pool/ioc/dld/$release
+        zfs create -p $pool/ioc/d/$release
     fi
 
     ftpdir="/pub/FreeBSD/releases/amd64/$release"
 
-    cd /ioc/dld/$release
+    cd /ioc/d/$release
     for file in $ftpfiles ; do
         if [ ! -e "$file" ] ; then        
             fetch http://$ftphost$ftpdir/$file
@@ -459,25 +461,25 @@ __fetch_release () {
     done
 
     if [ -z "$rel_exist" ] ; then
-        zfs create -p $pool/ioc/rel/$release/root
+        zfs create -p $pool/ioc/r/$release/root
     fi
 
     for file in $(echo $ftpfiles) ; do
         if [ -e "$file" ] ; then
             echo "Exctracting: $file"
-            tar -C /ioc/rel/$release/root -xf $file
+            tar -C /ioc/r/$release/root -xf $file
         fi
     done
 
     if [ $release == "10.0-RELEASE" ] ; then
         __freebsd-update-fix
         cat /usr/local/sbin/ioc-freebsd-update \
-        > /ioc/rel/$release/root/usr/sbin/freebsd-update
+        > /ioc/r/$release/root/usr/sbin/freebsd-update
 
         echo "* Updating base jail.."
         sleep 2
-        /usr/local/sbin/ioc-freebsd-update -b /ioc/rel/$release/root fetch
-        /usr/local/sbin/ioc-freebsd-update -b /ioc/rel/$release/root install
+        /usr/local/sbin/ioc-freebsd-update -b /ioc/r/$release/root fetch
+        /usr/local/sbin/ioc-freebsd-update -b /ioc/r/$release/root install
     fi
 
     if [ ! -d /ioc/log ] ; then 
@@ -497,9 +499,9 @@ __create_jail () {
     fi
 
     if [ "${2}" = "-c" ] ; then
-        fs_list=$(zfs list -rH -o name $pool/ioc/rel/$release)
+        fs_list=$(zfs list -rH -o name $pool/ioc/r/$release)
 
-        zfs snapshot -r $pool/ioc/rel/$release@$uuid
+        zfs snapshot -r $pool/ioc/r/$release@$uuid
         for fs in $fs_list ; do
             cfs=$(echo $fs | sed s#/releases/$release#/jails/$uuid#g)
             #echo "cloning $fs into $cfs"
@@ -508,10 +510,10 @@ __create_jail () {
     elif [ "${2}" = "-e" ] ; then
         zfs create -p $pool/ioc/j/$uuid/root
     else
-        zfs snapshot -r $pool/ioc/rel/$release@$uuid
-        zfs send     -R $pool/ioc/rel/$release@$uuid | \
+        zfs snapshot -r $pool/ioc/r/$release@$uuid
+        zfs send     -R $pool/ioc/r/$release@$uuid | \
         zfs recv        $pool/ioc/j/$uuid
-        zfs destroy  -r $pool/ioc/rel/$release@$uuid
+        zfs destroy  -r $pool/ioc/r/$release@$uuid
         zfs destroy  -r $pool/ioc/j/$uuid@$uuid
     fi
 
@@ -1386,6 +1388,13 @@ __find_mypool () {
     pools="$(zpool list -H -o name)"
     found="0"
 
+    ### XXX TODO: ADD SUPPORT FOR "NESTED" IOCAGE JAILS...
+    if [ -e $mypool_file ] ; then
+        echo "* MYPOOL: "
+        export pool=$(cat $mypool_file)
+        return
+    fi
+    
     for i in $pools ; do
         mypool="$(zpool get comment $i | grep -v NAME | awk '{print $3}')"
 
