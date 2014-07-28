@@ -135,6 +135,11 @@ hostid=$(cat /etc/hostid)
 mypool_file=/etc/ioc-mypool
 jail_zfs="off"
 jail_zfs_dataset="ioc/j/${uuid}/root/data"
+jail_zfs_hostonly="off"
+jail_nullfs_mount="off"
+jail_nullfs_mount_src="/ioc/j/${uuid}/root/data"
+jail_nullfs_mount_dst="/ioc/j/${uuid}/root/data" # err...
+jail_nullfs_mount_options="rw"
 mount_procfs="0"
 
 # Native ZFS properties
@@ -532,7 +537,10 @@ __create_jail () {
 
     zfs create ${pool}/$jail_zfs_dataset
     zfs set mountpoint=none ${pool}/$jail_zfs_dataset
-    zfs set jailed=on ${pool}/$jail_zfs_dataset
+
+    if [ $jail_zfs_hostonly -ne "1" ]
+       zfs set jailed=on ${pool}/$jail_zfs_dataset
+    fi
 
     # Install extra packages
     # this requires working resolv.conf in jail
@@ -953,6 +961,23 @@ __start_jail () {
         zfs set jailed=on ${pool}/$jzfs_dataset
     fi
 
+    if [ $jzfs_hostonly == "on" ] ; then
+        mkdir /ioc/j/${uuid}/root/data
+        zfs set mountpoint=/ioc/j/${uuid}/root/data $jzfs_dataset
+        zfs mount $jzfs_dataset
+    fi
+    
+    local jnullfs="(__get_jail_prop jail_nullfs_mount $fulluuid)"
+    local jnullfs_mount_src="$(__get_jail_prop jail_nullfs_mount_src $fulluuid)"
+    local jnullfs_mount_dst="$(__get_jail_prop jail_nullfs_mount_dst $fulluuid)"
+    local jnullfs_mount_options="$(__get_jail_prop jail_nullfs_mount_options $fulluuid)"
+    
+    if [ $jnullfs == "on" ] ; then
+        __set_jail_prop allow_mount_nullfs=1 $fulluuid
+        mount -t nullfs -o $jnullfs_mount_options $jnullfs_mount_src $jnullfs_mount_dst
+    fi
+
+    
     if [ $vnet == "on" ] || [ $vnet == "-" ] ; then
         if [ ! -z $(sysctl -qn kern.features.vimage) ] ; then
             echo "* Starting $fulluuid ($tag)"
@@ -1385,16 +1410,15 @@ __print_disk () {
 }
 
 __find_mypool () {
+    if [ -e $mypool_file ] ; then
+        export pool=$(cat $mypool_file)
+        echo "* MYPOOL: " $pool
+        return
+    fi
+
     pools="$(zpool list -H -o name)"
     found="0"
 
-    ### XXX TODO: ADD SUPPORT FOR "NESTED" IOCAGE JAILS...
-    if [ -e $mypool_file ] ; then
-        echo "* MYPOOL: "
-        export pool=$(cat $mypool_file)
-        return
-    fi
-    
     for i in $pools ; do
         mypool="$(zpool get comment $i | grep -v NAME | awk '{print $3}')"
 
