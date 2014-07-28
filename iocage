@@ -41,7 +41,7 @@ uuid=$(uuidgen | cut -c 1-13)
 # pkg list, only used with the create subcommand
 pkglist="none"
 
-# Network defaults for jails start here
+# Network defaults for jailzfss start here
 
 # detect VNET kernel and adjust jail default
 # if supported turn it on by default
@@ -247,6 +247,7 @@ CONF_CUSTOM="tag
              cpuset
              jail_zfs
              jail_zfs_dataset
+             jail_zfs_hostonly
              release"
 
 # Native ZFS properties
@@ -538,7 +539,7 @@ __create_jail () {
     zfs create ${pool}/$jail_zfs_dataset
     zfs set mountpoint=none ${pool}/$jail_zfs_dataset
 
-    if [ $jail_zfs_hostonly -ne "1" ]
+    if [ $jail_zfs_hostonly -ne "1" ] ; then
        zfs set jailed=on ${pool}/$jail_zfs_dataset
     fi
 
@@ -953,6 +954,7 @@ __start_jail () {
 
     local jzfs="$(__get_jail_prop jail_zfs $fulluuid)"
     local jzfs_dataset="$(__get_jail_prop jail_zfs_dataset $fulluuid)"
+    local jzfs_hostonly="$(__get_jail_prop jail_zfs_hostonly $fulluuid)"
 
     if [ $jzfs == "on" ] ; then
         __set_jail_prop allow_mount=1 $fulluuid
