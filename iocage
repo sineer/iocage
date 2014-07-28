@@ -135,7 +135,7 @@ hostid=$(cat /etc/hostid)
 mypool_file=/etc/ioc-mypool
 jail_zfs="off"
 jail_zfs_dataset="ioc/j/${uuid}/root/data"
-jail_zfs_hostonly="off"
+jail_zfs_hostonly="on"
 jail_nullfs_mount="off"
 jail_nullfs_mount_src="/ioc/j/${uuid}/root/data"
 jail_nullfs_mount_dst="/ioc/j/${uuid}/root/data" # err...
@@ -964,7 +964,9 @@ __start_jail () {
     fi
 
     if [ $jzfs_hostonly == "on" ] ; then
-        mkdir /ioc/j/$fulluuid/root/data
+        if [ ! -d /ioc/j/${fulluuid}/root/data ] ; then 
+            mkdir /ioc/j/$fulluuid/root/data
+        fi
         zfs set mountpoint=/ioc/j/$fulluuid/root/data $pool/$jzfs_dataset
     fi
 
