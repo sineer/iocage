@@ -497,7 +497,7 @@ __fetch_release () {
 
 # This creates jails----------------------------------------------------
 __create_jail () {
-    local installed=$(zfs list -r $pool/ioc/rel|grep $release)
+    local installed=$(zfs list -r $pool/ioc/r|grep $release)
 
     if [ -z "$installed" ] ; then
         echo "Release $release not found locally, run fetch first"
@@ -509,7 +509,7 @@ __create_jail () {
 
         zfs snapshot -r $pool/ioc/r/$release@$uuid
         for fs in $fs_list ; do
-            cfs=$(echo $fs | sed s#/releases/$release#/jails/$uuid#g)
+            cfs=$(echo $fs | sed s#/r/$release#/jails/$uuid#g)
             #echo "cloning $fs into $cfs"
             zfs clone $fs@$uuid $cfs
         done
@@ -965,19 +965,19 @@ __start_jail () {
 
     if [ $jzfs_hostonly == "on" ] ; then
         mkdir /ioc/j/$fulluuid/root/data
-        zfs set mountpoint=/ioc/j/$fulluuid/root/data $jzfs_dataset
-        zfs mount $jzfs_dataset
+        zfs set mountpoint=/ioc/j/$fulluuid/root/data $pool/$jzfs_dataset
     fi
+
+    ## XXX TODO NULLFS MOUNT SUPPORT ...
+    # local jnullfs="(__get_jail_prop jail_nullfs_mount $fulluuid)"
+    # local jnullfs_mount_src="$(__get_jail_prop jail_nullfs_mount_src $fulluuid)"
+    # local jnullfs_mount_dst="$(__get_jail_prop jail_nullfs_mount_dst $fulluuid)"
+    # local jnullfs_mount_options="$(__get_jail_prop jail_nullfs_mount_options $fulluuid)"
     
-    local jnullfs="(__get_jail_prop jail_nullfs_mount $fulluuid)"
-    local jnullfs_mount_src="$(__get_jail_prop jail_nullfs_mount_src $fulluuid)"
-    local jnullfs_mount_dst="$(__get_jail_prop jail_nullfs_mount_dst $fulluuid)"
-    local jnullfs_mount_options="$(__get_jail_prop jail_nullfs_mount_options $fulluuid)"
-    
-    if [ $jnullfs == "on" ] ; then
-        __set_jail_prop allow_mount_nullfs=1 $fulluuid
-        mount -t nullfs -o $jnullfs_mount_options $jnullfs_mount_src $jnullfs_mount_dst
-    fi
+    # if [ $jnullfs == "on" ] ; then
+    #     __set_jail_prop allow_mount_nullfs=1 $fulluuid
+    #     mount -t nullfs -o $jnullfs_mount_options $jnullfs_mount_src $jnullfs_mount_dst
+    # fi
     
     if [ $vnet == "on" ] || [ $vnet == "-" ] ; then
         if [ ! -z $(sysctl -qn kern.features.vimage) ] ; then
