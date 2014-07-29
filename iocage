@@ -608,7 +608,6 @@ __destroy_jail () {
         exit 1
     fi
 
-    local state="$(jls | grep $name | wc -l)"
     local dataset="$(__find_jail $name)"
 
     if [ -z $dataset ] ; then
@@ -623,7 +622,8 @@ __destroy_jail () {
 
     local origin="$(zfs get -H -o value origin $dataset)"
     local fulluuid="$(__check_name $name)"
-
+    local state="$(jls | grep ${fulluuid} | wc -l)"
+    
     echo " "
     echo "  WARNING: this will destroy jail $fulluuid"
     echo "  Dataset: $dataset"
@@ -948,6 +948,26 @@ __start_jail () {
         exit 1
     fi
 
+
+
+    # MOUNT JAIL ZFS FS(s) IF NOT ALREADY MOUNTED...
+    state="$(mount | grep "${fulluuid}/root" | wc -l)"
+    if [ "$state" -eq "0" ] ; then
+        state="$(mount | grep "${fulluuid}" | wc -l)"
+        if [ "$state" -eq "0" ] ; then
+            state="$(mount | grep "/ioc/j" | wc -l)"
+            if [ "$state" -eq "0" ] ; then
+                state="$(mount | grep "/ioc" | wc -l)"
+                if [ "$state" -eq "0" ] ; then
+                    zfs mount ${pool}/ioc
+                fi
+                zfs mount ${pool}/ioc/j
+            fi
+            zfs mount ${pool}/ioc/j/${fulluuid}
+        fi
+        zfs mount ${pool}/ioc/j/${fulluuid}/root
+    fi
+    
     if [ "$procfs" == "1" ] ; then
         mount -t procfs proc /ioc/j/${fulluuid}/root/proc
     fi
