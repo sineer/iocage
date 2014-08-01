@@ -135,11 +135,7 @@ hostid=$(cat /etc/hostid)
 mypool_file=/etc/ioc-mypool
 jail_zfs="off"
 jail_zfs_dataset="ioc/j/${uuid}/root/data"
-jail_zfs_hostonly="on"
-jail_nullfs_mount="off"
-jail_nullfs_mount_src="/ioc/j/${uuid}/root/data"
-jail_nullfs_mount_dst="/ioc/j/${uuid}/root/data" # err...
-jail_nullfs_mount_options="rw"
+jail_zfs_hostonly="off"
 mount_procfs="0"
 
 # Native ZFS properties
@@ -506,10 +502,10 @@ __create_jail () {
 
     if [ "${2}" = "-c" ] ; then
         fs_list=$(zfs list -rH -o name $pool/ioc/r/$release)
-
+        zfs create $pool/ioc/j/$uuid
         zfs snapshot -r $pool/ioc/r/$release@$uuid
         for fs in $fs_list ; do
-            cfs=$(echo $fs | sed s#/r/$release#/jails/$uuid#g)
+            cfs=$(echo $fs | sed s#/r/$release#/j/$uuid/root#g)
             #echo "cloning $fs into $cfs"
             zfs clone $fs@$uuid $cfs
         done
@@ -590,7 +586,8 @@ __clone_jail () {
     __configure_jail $pool/ioc/j/$uuid
     mv /ioc/j/$uuid/fstab /ioc/j/$uuid/fstab.$name
     touch /ioc/j/$uuid/fstab
-
+    touch /ioc/j/$uuid/zfstab
+    
     cat /ioc/j/${uuid}/root/etc/rc.conf | \
     sed -E "s/[a-zA-Z0-9]{8,}-.*-.*-.*-[a-zA-Z0-9]{12,}/$uuid/g" \
     > /ioc/j/${uuid}/rc.conf
@@ -640,7 +637,7 @@ __destroy_jail () {
             zfs destroy -r $origin
         fi
 
-    elif [ "$state" -eq "1" ] ; then
+    elif [ "$state" -gt "0" ] ; then
         echo "  ERROR: Jail is up and running ..exiting"
         exit 1
     fi
@@ -975,7 +972,8 @@ __start_jail () {
     local jzfs="$(__get_jail_prop jail_zfs $fulluuid)"
     local jzfs_dataset="$(__get_jail_prop jail_zfs_dataset $fulluuid)"
     local jzfs_hostonly="$(__get_jail_prop jail_zfs_hostonly $fulluuid)"
-
+    local jzfs_fstab=/ioc/j/${fulluuid}/zfstab
+    
     if [ $jzfs == "on" ] ; then
         __set_jail_prop allow_mount=1 $fulluuid
         __set_jail_prop enforce_statfs=1 $fulluuid
@@ -984,22 +982,12 @@ __start_jail () {
     fi
 
     if [ $jzfs_hostonly == "on" ] ; then
+        zfs set jailed=off ${pool}/$jzfs_dataset
         if [ ! -d /ioc/j/${fulluuid}/root/data ] ; then 
             mkdir /ioc/j/$fulluuid/root/data
         fi
         zfs set mountpoint=/ioc/j/$fulluuid/root/data $pool/$jzfs_dataset
     fi
-
-    ## XXX TODO NULLFS MOUNT SUPPORT ...
-    # local jnullfs="(__get_jail_prop jail_nullfs_mount $fulluuid)"
-    # local jnullfs_mount_src="$(__get_jail_prop jail_nullfs_mount_src $fulluuid)"
-    # local jnullfs_mount_dst="$(__get_jail_prop jail_nullfs_mount_dst $fulluuid)"
-    # local jnullfs_mount_options="$(__get_jail_prop jail_nullfs_mount_options $fulluuid)"
-    
-    # if [ $jnullfs == "on" ] ; then
-    #     __set_jail_prop allow_mount_nullfs=1 $fulluuid
-    #     mount -t nullfs -o $jnullfs_mount_options $jnullfs_mount_src $jnullfs_mount_dst
-    # fi
     
     if [ $vnet == "on" ] || [ $vnet == "-" ] ; then
         if [ ! -z $(sysctl -qn kern.features.vimage) ] ; then
@@ -1064,6 +1052,12 @@ __start_jail () {
 
     if [ $jzfs == "on" ] ; then
         zfs jail ioc-${fulluuid} ${pool}/$jzfs_dataset
+
+        # ZFS JAIL's "zfstab" FS(s):
+        if [ -e $jzfs_fstab ] ; then
+            cat $jzfs_fstab | while read line; do zfs jail ioc-${fulluuid} $line; done
+        fi
+            
     fi
 
     zfs set org.freebsd.iocage:last_started=$(date "+%F_%T") $dataset
