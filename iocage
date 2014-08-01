@@ -1208,6 +1208,11 @@ __stop_jail () {
 
     echo -n "  + Stopping services"
 
+    local jzfs="$(__get_jail_prop jail_zfs $fulluuid)"    
+    if [ $jzfs == "on" ] ; then
+        jexec ioc-${fulluuid} zfs umount -a > /dev/null 2>&1
+    fi
+            
     jexec ioc-${fulluuid} $exec_stop >> /ioc/log/${fulluuid}-console.log 2>&1
 
     if [ $? -ne 1 ] ; then
