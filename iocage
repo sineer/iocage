@@ -1045,6 +1045,16 @@ __start_jail () {
         fi
     fi
 
+    if [ $jzfs == "on" ] ; then
+        zfs jail ioc-${fulluuid} ${pool}/$jzfs_dataset
+
+        # ZFS JAIL's "zfstab" FS(s):
+        if [ -e $jzfs_fstab ] ; then
+            cat $jzfs_fstab | while read line; do zfs jail ioc-${fulluuid} $line; done
+        fi
+            
+    fi
+    
     cd ${jail_path}/root/dev && ln -s ../var/run/log log
 
     __rctl_limits $fulluuid
@@ -1068,16 +1078,6 @@ __start_jail () {
         echo "        FAILED"
     else
         echo "        OK"
-    fi
-
-    if [ $jzfs == "on" ] ; then
-        zfs jail ioc-${fulluuid} ${pool}/$jzfs_dataset
-
-        # ZFS JAIL's "zfstab" FS(s):
-        if [ -e $jzfs_fstab ] ; then
-            cat $jzfs_fstab | while read line; do zfs jail ioc-${fulluuid} $line; done
-        fi
-            
     fi
 
     zfs set org.freebsd.iocage:last_started=$(date "+%F_%T") $dataset
@@ -1275,6 +1275,12 @@ __stop_jail () {
     umount /ioc/j/${fulluuid}/root/dev    > /dev/null 2>&1
     umount /ioc/j/${fulluuid}/root/proc   > /dev/null 2>&1
 
+    # FORCE UNMOUNT DATASET AND CHILD(s)...
+    local fs_list="$(zfs list -rH -o name $dataset)"
+    for fs in $fs_list ; do
+        umount -f $fs > /dev/null 2>&1
+    done
+    
     if [ -d /ioc/j/${fulluuid}/recorded ] ; then
         umount -ft unionfs /ioc/j/${fulluuid}/root > /dev/null 2>&1
     fi
