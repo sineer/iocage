@@ -158,6 +158,9 @@ sync_tgt_zpool="none"
 ftphost="ftp.freebsd.org"
 ftpfiles="base.txz doc.txz lib32.txz"
 
+# HACKs
+thin_clone=0
+
 # Resource limits
 CONF_RCTL="memoryuse
            memorylocked
@@ -516,7 +519,10 @@ __create_jail () {
         zfs send     -R $pool/ioc/r/$release@$uuid | \
         zfs recv        $pool/ioc/j/$uuid
         zfs destroy  -r $pool/ioc/r/$release@$uuid
-        zfs destroy  -r $pool/ioc/j/$uuid@$uuid
+        fs_snap=$(zfs list -rH -t snapshot -o name ${pool}/ioc/j/${uuid})
+        for fs in $fs_snap ; do
+            zfs destroy -r $fs > /dev/null 2>&1
+        done
     fi
 
     __configure_jail $pool/ioc/j/$uuid
@@ -569,7 +575,7 @@ __clone_jail () {
     fi
 
     # "THIN" CLONE
-    if [ "${2}" = "-c" ] ; then
+    if [ $thin_clone ] ; then
         local fs_list="$(zfs list -rH -o name $dataset)"
 
         if [ -z "$snapshot" ] ; then
@@ -586,11 +592,11 @@ __clone_jail () {
         fi
     else
         # "DEEP" CLONE
-        zfs snapshot -r ${dataset}@$uuid
-        zfs send     -R ${dataset}@$uuid | \
+        zfs snapshot -r $dataset@$uuid
+        zfs send     -R $dataset@$uuid | \
         zfs recv        $pool/ioc/j/$uuid
-        zfs destroy  -r ${dataset}@$uuid
-        zfs destroy     $pool/ioc/j/$uuid@uuid
+        zfs destroy  -r $dataset@$uuid
+        zfs destroy  -r $pool/ioc/j/$uuid@$uuid
     fi
 
     __configure_jail $pool/ioc/j/$uuid
@@ -642,6 +648,8 @@ __destroy_jail () {
         echo "  Destroying: $fulluuid"
         zfs destroy -fr $dataset
 
+        # TODO: DESTROY /ioc/r/$release@$uuid if it exist.
+
         if [ "$origin" != "-" ] ; then
             echo "  Destroying clone origin: $origin"
             zfs destroy -r $origin
@@ -685,6 +693,8 @@ __export_props () {
     for i in "$@" ; do
         if [ "$(echo $i | grep -e ".*=.*")" ] ; then
             export "$i"
+        elif [ $i == "-c" ]  ; then
+            $thin_clone=1
         fi
     done
 }
