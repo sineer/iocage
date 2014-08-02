@@ -568,19 +568,29 @@ __clone_jail () {
         exit 1
     fi
 
-    local fs_list="$(zfs list -rH -o name $dataset)"
+    # "THIN" CLONE
+    if [ "${2}" = "-c" ] ; then
+        local fs_list="$(zfs list -rH -o name $dataset)"
 
-    if [ -z "$snapshot" ] ; then
-        zfs snapshot -r ${dataset}@${uuid}
-        for fs in $fs_list ; do
-            cfs="$(echo $fs | sed s#$dataset#$pool/ioc/j/$uuid#g)"
-            zfs clone $fs@$uuid $cfs
-        done
+        if [ -z "$snapshot" ] ; then
+            zfs snapshot -r ${dataset}@${uuid}
+            for fs in $fs_list ; do
+                cfs="$(echo $fs | sed s#$dataset#$pool/ioc/j/$uuid#g)"
+                zfs clone $fs@$uuid $cfs
+            done
+        else
+            for fs in $fs_list ; do
+                cfs="$(echo $fs | sed s#$dataset#$pool/ioc/j/$uuid#g)"
+                zfs clone $fs@$snapshot $cfs
+            done
+        fi
     else
-        for fs in $fs_list ; do
-            cfs="$(echo $fs | sed s#$dataset#$pool/ioc/j/$uuid#g)"
-            zfs clone $fs@$snapshot $cfs
-        done
+        # "DEEP" CLONE
+        zfs snapshot -r ${dataset}@$uuid
+        zfs send     -R ${dataset}@$uuid | \
+        zfs recv        $pool/ioc/j/$uuid
+        zfs destroy  -r ${dataset}@$uuid
+        zfs destroy     $pool/ioc/j/$uuid@uuid
     fi
 
     __configure_jail $pool/ioc/j/$uuid
