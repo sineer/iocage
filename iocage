@@ -124,6 +124,7 @@ wallclock="off"
 # Custom properties
 tag=$(date "+%F@%T")
 template="no"
+sink="no"
 boot="off"
 notes="none"
 owner="root"
@@ -133,13 +134,13 @@ type="jail"
 release=$(uname -r|cut -f 1,2 -d'-')
 hostid=$(cat /etc/hostid)
 mypool_file=/etc/ioc-mypool
-jail_zfs="off"
+jail_zfs="on"
 jail_zfs_dataset="ioc/j/${uuid}/root/data"
 jail_zfs_hostonly="off"
 mount_procfs="0"
 
 # Native ZFS properties
-compression="lz4"
+compression="off"
 origin="readonly"
 quota="none"
 mountpoint="readonly"
@@ -235,6 +236,7 @@ CONF_JAIL="devfs_ruleset
 # Custom properties
 CONF_CUSTOM="tag
              template
+             sink
              rlimits
              boot
              notes
@@ -410,7 +412,7 @@ __print_release () {
                 9.2-RELEASE
                 9.1-RELEASE"
 
-    echo "Supported releases are: " 
+    echo "Supported releases are: "
     for rel in $(echo $supported) ; do
         printf "%15s\n" "$rel"
     done
@@ -440,7 +442,7 @@ __fetch_release () {
         echo "Invalid release $release specified, exiting.."
         exit 1
     fi
-  
+
     local exist=$(zfs list | grep -w ^$pool/ioc)
     local download_exist=$(zfs list | grep -w ^$pool/ioc/d/$release)
     local rel_exist=$(zfs list | grep -w ^$pool/ioc/r/$release)
@@ -450,7 +452,7 @@ __fetch_release () {
         zfs set mountpoint=/ioc $pool/ioc
         zfs create $pool/ioc/j
         zfs mount -a
-    fi 
+    fi
 
     if [ -z "$download_exist" ] ; then
         zfs create -p $pool/ioc/d/$release
@@ -460,7 +462,7 @@ __fetch_release () {
 
     cd /ioc/d/$release
     for file in $ftpfiles ; do
-        if [ ! -e "$file" ] ; then        
+        if [ ! -e "$file" ] ; then
             fetch http://$ftphost$ftpdir/$file
         fi
     done
@@ -487,7 +489,7 @@ __fetch_release () {
         /usr/local/sbin/ioc-freebsd-update -b /ioc/r/$release/root install
     fi
 
-    if [ ! -d /ioc/log ] ; then 
+    if [ ! -d /ioc/log ] ; then
         mkdir /ioc/log
     fi
 
@@ -514,6 +516,14 @@ __create_jail () {
         done
     elif [ "${2}" = "-e" ] ; then
         zfs create -p $pool/ioc/j/$uuid/root
+    elif [ "${2}" = "-s" ] ; then
+	zfs create $pool/ioc/j/$uuid
+	zfs snapshot $pool/ioc/r/$release/root@$uuid
+	zfs snapshot $pool/ioc/r/$release/skel@$uuid
+	zfs clone $pool/ioc/r/$release/root@$uuid tank/ioc/j/$uuid/root
+        zfs clone $pool/ioc/r/$release/skel@$uuid tank/ioc/j/$uuid/s
+	zfs set mountpoint=none tank/ioc/j/$uuid/s
+	zfs set readonly="on" tank/ioc/j/$uuid/root
     else
         zfs snapshot -r $pool/ioc/r/$release@$uuid
         zfs send     -R $pool/ioc/r/$release@$uuid | \
@@ -529,7 +539,16 @@ __create_jail () {
     touch /ioc/j/$uuid/fstab
 
     # at create time set the default rc.conf
-    if [ "${2}" != "-e" ] ; then
+    if [ "${2}" = "-s" ] ; then
+	mount -t zfs tank/ioc/j/${uuid}/s /ioc/j/${uuid}/root/s
+
+        # echo "hostname=${uuid}" > /ioc/j/${uuid}/root/etc/rc.conf
+        __jail_rc_conf >> \
+        /ioc/j/${uuid}/root/etc/rc.conf
+        __resolv_conf > /ioc/j/${uuid}/root/etc/resolv.conf
+
+	umount tank/ioc/j/${uuid}/s
+    elif [ "${2}" != "-e" ] ; then
         echo "hostname=${uuid}" > /ioc/j/${uuid}/root/etc/rc.conf
         __jail_rc_conf >> \
         /ioc/j/${uuid}/root/etc/rc.conf
@@ -603,7 +622,7 @@ __clone_jail () {
     mv /ioc/j/$uuid/fstab /ioc/j/$uuid/fstab.$name
     touch /ioc/j/$uuid/fstab
     touch /ioc/j/$uuid/zfstab
-    
+
     cat /ioc/j/${uuid}/root/etc/rc.conf | \
     sed -E "s/[a-zA-Z0-9]{8,}-.*-.*-.*-[a-zA-Z0-9]{12,}/$uuid/g" \
     > /ioc/j/${uuid}/rc.conf
@@ -636,7 +655,7 @@ __destroy_jail () {
     local origin="$(zfs get -H -o value origin $dataset)"
     local fulluuid="$(__check_name $name)"
     local state="$(jls | grep ${fulluuid} | wc -l)"
-    
+
     echo " "
     echo "  WARNING: this will destroy jail $fulluuid"
     echo "  Dataset: $dataset"
@@ -724,10 +743,10 @@ __set_jail_prop () {
     local pname="$(echo $property|awk 'BEGIN { FS = "=" } ; { print $1 }')"
     local pval="$(echo $property|awk 'BEGIN { FS = "=" } ; { print $2 }')"
 
-    if [ -z "$pname" ] || [ -z "$pval" ] ; then 
+    if [ -z "$pname" ] || [ -z "$pval" ] ; then
         echo "  ERROR: set failed, incorrect property syntax!"
         exit 1
-    fi 
+    fi
 
     local found="0"
 
@@ -823,7 +842,7 @@ __get_jail_prop () {
 __usage () {
     echo "usage:"
     echo "  iocage fetch [release=RELEASE | ftphost=ftp.hostname.org]"
-    echo "  iocage create [-c|-e] [release=RELEASE] [pkglist=file] [property=value]"
+    echo "  iocage create [-c|-e|-s] [release=RELEASE] [pkglist=file] [property=value]"
     echo "  iocage clone UUID | UUID@snapshot [property=value]"
     echo "  iocage destroy UUID"
     echo "  iocage list [-t]"
@@ -930,6 +949,7 @@ __start_jail () {
     local jail_hostid="$(__get_jail_prop hostid $fulluuid)"
     local jail_path="$(__get_jail_prop mountpoint $fulluuid)"
     local template="$(__get_jail_prop template $fulluuid)"
+    local sink="$(__get_jail_prop sink $fulluuid)"
     local cpuset="$(__get_jail_prop cpuset $fulluuid)"
     local procfs="$(__get_jail_prop mount_procfs $fulluuid)"
     local state="$(jls | grep $fulluuid | wc -l)"
@@ -958,6 +978,8 @@ __start_jail () {
         return
     fi
 
+    # TODO: elif [ $sink == "yes" ] ; then
+
     if [ "$jail_hostid" != "$hostid" ] ; then
         echo "ERROR: hostid mismatch, start failed!"
         echo "    jail hostid: $jail_hostid"
@@ -984,7 +1006,7 @@ __start_jail () {
         fi
         zfs mount ${pool}/ioc/j/${fulluuid}/root
     fi
-    
+
     if [ "$procfs" == "1" ] ; then
         mount -t procfs proc /ioc/j/${fulluuid}/root/proc
     fi
@@ -993,7 +1015,8 @@ __start_jail () {
     local jzfs_dataset="$(__get_jail_prop jail_zfs_dataset $fulluuid)"
     local jzfs_hostonly="$(__get_jail_prop jail_zfs_hostonly $fulluuid)"
     local jzfs_fstab=/ioc/j/${fulluuid}/zfstab
-    
+    local jzfs_sfs=tank/ioc/j/${fulluuid}/s
+
     if [ $jzfs == "on" ] ; then
         __set_jail_prop allow_mount=1 $fulluuid
         __set_jail_prop enforce_statfs=1 $fulluuid
@@ -1003,12 +1026,12 @@ __start_jail () {
 
     if [ $jzfs_hostonly == "on" ] ; then
         zfs set jailed=off ${pool}/$jzfs_dataset
-        if [ ! -d /ioc/j/${fulluuid}/root/data ] ; then 
+        if [ ! -d /ioc/j/${fulluuid}/root/data ] ; then
             mkdir /ioc/j/$fulluuid/root/data
         fi
         zfs set mountpoint=/ioc/j/$fulluuid/root/data $pool/$jzfs_dataset
     fi
-    
+
     if [ $vnet == "on" ] || [ $vnet == "-" ] ; then
         if [ ! -z $(sysctl -qn kern.features.vimage) ] ; then
             echo "* Starting $fulluuid ($tag)"
@@ -1052,9 +1075,21 @@ __start_jail () {
         if [ -e $jzfs_fstab ] ; then
             cat $jzfs_fstab | while read line; do zfs jail ioc-${fulluuid} $line; done
         fi
-            
+
     fi
-    
+
+    state=$(zfs list | grep $jzfs_sfs | wc -l)
+    if [ ! "$state" -eq "0" ] ; then
+	zfs set jailed=on $jzfs_sfs
+	zfs jail ioc-${fulluuid} $jzfs_sfs
+	jexec ioc-${fulluuid} mount -t zfs $jzfs_sfs /s
+
+	# TODO REVIEW THIS AND MAKE IT OPTIONAL...
+	# FORCE MOUNT DATASET!
+	jexec ioc-${fulluuid} mount -t zfs ${pool}/$jzfs_dataset /data
+    fi
+
+
     cd ${jail_path}/root/dev && ln -s ../var/run/log log
 
     __rctl_limits $fulluuid
@@ -1070,7 +1105,7 @@ __start_jail () {
         fi
     fi
 
-    echo -n "  + Starting services" 
+    echo -n "  + Starting services"
     jexec ioc-${fulluuid} $(__get_jail_prop exec_start $fulluuid) \
      >> /ioc/log/${fulluuid}-console.log 2>&1
 
@@ -1218,7 +1253,7 @@ __stop_jail () {
 
     echo "* Stopping $fulluuid ($tag)"
 
-    echo -n "  + Running pre-stop" 
+    echo -n "  + Running pre-stop"
     echo "$exec_prestop" | sh
     if [ $? -ne 1 ] ; then
         echo "         OK"
@@ -1228,11 +1263,11 @@ __stop_jail () {
 
     echo -n "  + Stopping services"
 
-    local jzfs="$(__get_jail_prop jail_zfs $fulluuid)"    
+    local jzfs="$(__get_jail_prop jail_zfs $fulluuid)"
     if [ $jzfs == "on" ] ; then
         jexec ioc-${fulluuid} zfs umount -a > /dev/null 2>&1
     fi
-            
+
     jexec ioc-${fulluuid} $exec_stop >> /ioc/log/${fulluuid}-console.log 2>&1
 
     if [ $? -ne 1 ] ; then
@@ -1280,7 +1315,7 @@ __stop_jail () {
     for fs in $fs_list ; do
         umount -f $fs > /dev/null 2>&1
     done
-    
+
     if [ -d /ioc/j/${fulluuid}/recorded ] ; then
         umount -ft unionfs /ioc/j/${fulluuid}/root > /dev/null 2>&1
     fi
@@ -1349,7 +1384,7 @@ __rc_jails () {
             echo "${priority},${name}" >> $boot_list
         fi
     done
-    
+
     if [ -e $boot_list ] ; then
         local boot_order=$(sort -n $boot_list)
         local shutdown_order=$(sort -rn $boot_list)
@@ -1361,7 +1396,7 @@ __rc_jails () {
     if [ "$action" == "boot" ] ; then
         echo "* [I|O|C] booting jails... "
 
-        for i in $boot_order ; do 
+        for i in $boot_order ; do
             local jail="$(echo $i | cut -f2 -d,)"
             local state="$(jls | grep $jail | wc -l)"
 
@@ -1399,6 +1434,7 @@ __list_jails () {
         tag=$(zfs get -H -o value org.freebsd.iocage:tag $jail)
         state=$(jls | grep $uuid | awk '{print$1}')
         template=$(zfs get -H -o value org.freebsd.iocage:template $jail)
+        sink=$(zfs get -H -o value org.freebsd.iocage:sink $jail)
 
         if [ -z "$state" ] ; then
             state=down
@@ -1410,6 +1446,7 @@ __list_jails () {
             switch=zero
         fi
 
+	# TODO: elif case for "-s" SINKs...
         if [ $switch == "-t" ] ; then
             if [ $template == "yes" ] ; then
                 printf "%-+.36s  %-3s   %-4s   %s\n" "$uuid" \
@@ -1433,9 +1470,9 @@ __show () {
     for jail in $jails ; do
         local name="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid \
                     $jail)"
-        local value="$(__get_jail_prop $prop $name)" 
+        local value="$(__get_jail_prop $prop $name)"
 
-        printf "%-+.36s  %s\n" "$name"  "$value" 
+        printf "%-+.36s  %s\n" "$name"  "$value"
     done
 }
 
@@ -1574,12 +1611,12 @@ __rctl_limits () {
             value="$(__get_jail_prop $prop $fulluuid)"
             limit=$(echo $value | awk 'BEGIN { FS = ":" } ; { print $1 }')
             action=$(echo $value | awk 'BEGIN { FS = ":" } ; { print $2 }')
-            
+
             if [ $limit == "off" ] ; then
                 continue
             else
                 if [ -z "$limit" ] || [ -z "$action" ] ; then
-                    echo -n "  ERROR: incorrect resource limit: $limit action: " 
+                    echo -n "  ERROR: incorrect resource limit: $limit action: "
                     echo "$action for property: $prop"
                     echo "  HINT : check man page for syntax."
                 else
@@ -1738,10 +1775,10 @@ __snapshot () {
     fi
 
     local date=$(date "+%F_%T")
-   
+
     if [ ! -z $snapshot ] ; then
         zfs snapshot -r ${dataset}@${snapshot}
-    else 
+    else
         zfs snapshot -r ${dataset}@ioc-${date}
     fi
 }
@@ -1784,25 +1821,25 @@ __snaplist () {
         echo "  ERROR: missing UUID"
         exit 1
     fi
-        
+
     local dataset=$(__find_jail $name)
- 
+
     if [ -z $dataset ] ; then
         echo "  ERROR: $name not found"
         exit 1
     fi
-    
+
     if [ $dataset == "multiple" ] ; then
         echo "  ERROR: multiple matching UUIDs!"
         exit 1
     fi
-        
+
     local fulluuid="$(__check_name $name)"
     local snapshots="$(zfs list -Hrt snapshot -d1 $dataset | awk '{print $1}')"
 
     printf "%-36s  %-21s  %s   %s\n" "NAME" "CREATED"\
             "RSIZE" "USED"
-    
+
     for i in $snapshots ; do
         local snapname=$(echo $i|cut -f 2 -d \@)
         local creation="$(zfs get -H -o value creation $i)"
@@ -1919,7 +1956,7 @@ __update () {
     fi
 
     local dataset=$(__find_jail $name)
-    
+
     if [ -z $dataset ] ; then
         echo "  ERROR: $name not found"
         exit 1
@@ -1993,11 +2030,11 @@ __record () {
     local mountpoint="$(__get_jail_prop mountpoint $fulluuid)"
     local union_mount="$(mount -t unionfs | grep $fulluuid | wc -l)"
 
-    if [ ! -d ${mountpoint}/recorded ] ; then 
+    if [ ! -d ${mountpoint}/recorded ] ; then
         mkdir ${mountpoint}/recorded
     fi
 
-   
+
     if [ $action == "start" ] ; then
         echo "* Recording to: ${mountpoint}/recorded"
 
@@ -2018,11 +2055,11 @@ __record () {
         > /dev/null 2>&1
         find ${mountpoint}/recorded/ -name .history -exec rm -f {} \; \
         > /dev/null 2>&1
-    fi 
+    fi
 }
 
 __package () {
-    # create package from recorded changes 
+    # create package from recorded changes
     # sha256 too
     local name=$1
 
@@ -2172,7 +2209,7 @@ __export () {
         echo "  ERROR: multiple matching UUIDs!"
         exit 1
     fi
-        
+
     local fulluuid="$(__check_name $name)"
     local state=$(jls|grep $fulluuid | wc -l)
 
@@ -2303,7 +2340,7 @@ DESCRIPTION
   iocage is a system administration tool for jails designed to simplify
   jail management tasks. It abstracts away the management of ZFS backed jails running VNET
   and shared IP networking with optional support for resource limits.
-  
+
   The older shared IP based jails are supported, VNET enabled jails
   provide better isolation though.
 
@@ -2347,13 +2384,15 @@ SUBCOMMANDS
 
     Example: iocage fetch release=9.2-RELEASE
 
-  create [-c|-e] [release=RELEASE] [property=value] [property=value] ...
+  create [-c|-e|-s] [release=RELEASE] [property=value] [property=value] ...
 
     By default create will deploy a new jail based on the host operating
     system's release. This can be changed by specifying the release option.
     If the -c switch is specified the jail will be cloned from the release.
     Default is to create a fully independent jail set. The -e switch will
     create an empty jail.
+
+    TODO: Document -s switch will create a "SUPER" Jail...
 
     Example: iocage create tag=www01 pkglist=$HOME/my-pkgs.txt
 
@@ -2384,7 +2423,7 @@ SUBCOMMANDS
   df
 
     List disk space related information. Available fields:
-    
+
     CRT - compression ratio
     RES - reserved space
     QTA - disk quota
@@ -2402,7 +2441,7 @@ SUBCOMMANDS
   restart UUID
 
     Soft restart jail. Soft method will restart the jail without destroying
-    the jail's networking and the jail itself. All processes are gracefully 
+    the jail's networking and the jail itself. All processes are gracefully
     restarted inside the jail. Useful for quick and graceful restarts.
 
   rcboot
@@ -2430,8 +2469,8 @@ SUBCOMMANDS
   show property
 
     Shows the given property for all jails and templates. Useful to compare
-    settings/properties for all jails. 
-   
+    settings/properties for all jails.
+
     To get the last successfull start time for all jails:
 
         iocage show last_started
@@ -2450,7 +2489,7 @@ SUBCOMMANDS
     Set a property to value.
 
   cap UUID
-    
+
     Reapply resource limits on jail while it is running.
 
   limits [UUID]
@@ -2463,7 +2502,7 @@ SUBCOMMANDS
     Release all resource limits, disable limits on the fly.
 
   inuse UUID
-    
+
     Display consumed resources for jail.
 
   snapshot UUID | UUID@snapshotname
@@ -2617,12 +2656,12 @@ PROPERTIES
   ip6.addr, ip6.saddrsel, ip6
     A set of IPv6 options for the prison, the counterparts to
     ip4.addr, ip4.saddrsel and ip4 above.
-    
+
   interfaces=vnet0:bridge0,vnet1:bridge1 | vnet0:bridge0
-    
+
     By default there are two interfaces specified with their bridge
     association. Up to four interfaces are supported. Interface configurations
-    are separated by commas. Format is interface:bridge, where left value is 
+    are separated by commas. Format is interface:bridge, where left value is
     the virtual VNET interface name, right value is the bridge name where the
     virtual interface should be attached.
 
@@ -2660,7 +2699,7 @@ PROPERTIES
     files outside of the jail.  See devfs(8) for information on
     how to use devfs rules to limit access to entries in the per-jail
     devfs.  A simple devfs ruleset for jails is available as ruleset
-    #4 in /etc/defaults/devfs.rules    
+    #4 in /etc/defaults/devfs.rules
 
     Default: 4
     Source: jail(8)
@@ -2716,7 +2755,7 @@ PROPERTIES
   exec_poststart="/usr/bin/true"
 
     Command(s) to run in the system environment after a jail is started,
-    and after any exec_start commands have completed. 
+    and after any exec_start commands have completed.
 
     Default: /usr/bin/true
     Source: jail(8)
@@ -2824,7 +2863,7 @@ PROPERTIES
     Source: login(1)
 
   jail_zfs=on | off
-    
+
     Enables automatic ZFS jailing inside the jail. Assigned ZFS dataset will
     be fully controlled by the jail.
     NOTE: Setting this to "on" automatically enables allow_mount=1
@@ -3005,7 +3044,7 @@ PROPERTIES
     This property controls whether the jail is a template. Templates are not
     started by iocage. Set to yes if you intend to convert jail into template.
     (See EXAMPLES section)
-    
+
     Default: no
     Source: local
 
@@ -3210,7 +3249,7 @@ PROPERTIES
     This is for future use, currently not supported.
 
   rlimits=on | off
-    
+
     If set to "on" resource limits will be enforced.
 
     Default: off
@@ -3223,7 +3262,7 @@ PROPERTIES
     Default: off
     Source: cpuset(1)
 RESOURCE LIMITS
-  Resource limits (except cpuset and rlimits) use the following value 
+  Resource limits (except cpuset and rlimits) use the following value
   field formatting in the property: limit:action.
 
   Limit defines how much of the resource a process can use before the
@@ -3403,7 +3442,7 @@ EXAMPLES
     iocage start UUID
 
   Turn on resource limits and apply them:
-  
+
     iocage set rlimits=on UUID
     iocage cap UUID
 
@@ -3432,7 +3471,7 @@ EXAMPLES
     iocage record stop UUID
 
   Create package from recorded session
-  
+
     iocage package UUID
 
   Import package on another host
