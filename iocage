@@ -1426,10 +1426,11 @@ __list_jails () {
     local jails=$(__find_jail ALL)
     local switch=$1
 
-    printf "%-36s  %s  %s  %s\n" "UUID" "BOOT"\
+    printf "%-13s  %s  %s  %s  %s\n" "UUID" "HOSTNAME" "BOOT"\
            "STATE" "TAG"
     for jail in $jails ; do
         uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $jail)
+        hostname=$(zfs get -H -o value org.freebsd.iocage:hostname $jail)
         boot=$(zfs get -H -o value org.freebsd.iocage:boot $jail)
         tag=$(zfs get -H -o value org.freebsd.iocage:tag $jail)
         state=$(jls | grep $uuid | awk '{print$1}')
@@ -1449,12 +1450,12 @@ __list_jails () {
 	# TODO: elif case for "-s" SINKs...
         if [ $switch == "-t" ] ; then
             if [ $template == "yes" ] ; then
-                printf "%-+.36s  %-3s   %-4s   %s\n" "$uuid" \
+                printf "%-+.36s  %-8s  %-3s   %-4s   %s\n" "$uuid" "$hostname"\
                 "$boot" "$state" "$tag"
             fi
         elif [ $switch != "-t" ] ; then
             if [ $template != "yes" ] ; then
-                printf "%-+.36s  %-3s   %-4s   %s\n" "$uuid" \
+                printf "%-+.36s  %-8s  %-3s   %-4s   %s\n" "$uuid" "$hostname"\
                 "$boot" "$state" "$tag"
             fi
         fi
