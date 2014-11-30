@@ -372,6 +372,18 @@ __parse_cmd () {
                         __import "$2"
                         exit
                 ;;
+            push)     __push "$2"
+                        exit
+                ;;
+            pull)     __pull "$2"
+                        exit
+                ;;
+            jail)     __jail "$2"
+                        exit
+                ;;
+            unjail)     __unjail "$2"
+                        exit
+                ;;
             show)       __show "$2"
                         exit
                 ;;
@@ -520,8 +532,8 @@ __create_jail () {
 	zfs create $pool/ioc/j/$uuid
 	zfs snapshot $pool/ioc/r/$release/root@$uuid
 	zfs snapshot $pool/ioc/r/$release/skel@$uuid
-	zfs clone $pool/ioc/r/$release/root@$uuid tank/ioc/j/$uuid/root
-        zfs clone $pool/ioc/r/$release/skel@$uuid tank/ioc/j/$uuid/root/s
+	zfs clone $pool/ioc/r/$release/root@$uuid $pool/ioc/j/$uuid/root
+        zfs clone $pool/ioc/r/$release/skel@$uuid $pool/ioc/j/$uuid/root/s
     else
         zfs snapshot -r $pool/ioc/r/$release@$uuid
         zfs send     -R $pool/ioc/r/$release@$uuid | \
@@ -543,9 +555,9 @@ __create_jail () {
         /ioc/j/${uuid}/root/etc/rc.conf
         __resolv_conf > /ioc/j/${uuid}/root/etc/resolv.conf
 
-	zfs set readonly="on" tank/ioc/j/$uuid/root
-	zfs set readonly="off" tank/ioc/j/$uuid/root/s
-	zfs set mountpoint=none tank/ioc/j/$uuid/root/s
+	zfs set readonly="on" $pool/ioc/j/$uuid/root
+	zfs set readonly="off" $pool/ioc/j/$uuid/root/s
+	zfs set mountpoint=none $pool/ioc/j/$uuid/root/s
     elif [ "${2}" != "-e" ] ; then
         echo "hostname=${uuid}" > /ioc/j/${uuid}/root/etc/rc.conf
         __jail_rc_conf >> \
@@ -556,7 +568,7 @@ __create_jail () {
     fi
 
     zfs create ${pool}/$jail_zfs_dataset
-    zfs set readonly="off" tank/ioc/j/$uuid/root/data
+    zfs set readonly="off" $pool/ioc/j/$uuid/root/data
     zfs set mountpoint=none ${pool}/$jail_zfs_dataset
 
     if [ "$jail_zfs_hostonly" != "on" ] ; then
@@ -695,6 +707,8 @@ __destroy_jail () {
     elif [ "$state" -gt "0" ] ; then
         echo "  ERROR: Jail is up and running ..exiting"
         exit 1
+    else
+        echo "  Canceled."
     fi
 }
 
@@ -890,6 +904,10 @@ __usage () {
     echo "  iocage package UUID"
     echo "  iocage export UUID"
     echo "  iocage import UUID [property=value]"
+    echo "  iocage push UUID"
+    echo "  iocage pull UUID"
+    echo "  iocage jail UUID"
+    echo "  iocage unjail UUID"
     echo "  iocage defaults"
     echo "  iocage version | --version"
     echo "  iocage help"
@@ -2261,6 +2279,29 @@ __export () {
 
 }
 
+__push() {
+    echo "TODO PUSH..."
+}
+
+__pull() {
+    echo "TODO PULL..."
+}
+
+
+__jail() {
+    echo "TODO JAIL..."
+
+    # TODO: Validate jail_zfs is "on" else ot won't work...
+    
+
+
+    
+}
+
+__unjail() {
+    echo "TODO UNJAIL..."
+}
+
 __check_name () {
     local name=$1
 
@@ -2595,6 +2636,22 @@ SUBCOMMANDS
     present in /iocage/images and packages in /iocage/packages along with
     along with checksum files. You can use short UUIDs - do not specify the
     the full filename only the UUID.
+
+  push UUID
+
+    ...
+
+  pull UUID
+
+    ...
+
+  jail
+
+    ...
+
+  unjail
+
+    ...
 
   defaults
 
