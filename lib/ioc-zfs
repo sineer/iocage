@@ -34,7 +34,7 @@ __clean () {
     case "$1" in
         -a)
             echo " "
-            echo "  WARNING: this will destroy $pool/iocage"
+            echo "  WARNING: this will destroy ${pool}${iocroot}"
             echo " "
             echo "  Please make sure all jails are stopped before continuing."
             echo " "
@@ -42,8 +42,8 @@ __clean () {
             read _answer
 
             if [ "$_answer" == "Y" -o "$_answer" == "y" ] ; then
-                echo "  Destroying $pool/iocage"
-                zfs destroy -rRf $pool/iocage
+                echo "  Destroying ${pool}${iocroot}"
+                zfs destroy -rRf ${pool}${iocroot}
                 exit 0
             else
                 echo "  Command not confirmed.  No action taken."
@@ -60,12 +60,12 @@ __clean () {
             read _answer
 
             if [ "$_answer" == "Y" -o "$_answer" == "y" ] ; then
-                echo "  Destroying $pool/iocage/base"
-                zfs destroy -rRf $pool/iocage/base
-                echo "  Destroying $pool/iocage/download"
-                zfs destroy -rRf $pool/iocage/download
-                echo "  Destroying $pool/iocage/releases"
-                zfs destroy -rRf $pool/iocage/releases
+                echo "  Destroying ${pool}${iocroot}/base"
+                zfs destroy -rRf ${pool}${iocroot}/base
+                echo "  Destroying ${pool}${iocroot}/download"
+                zfs destroy -rRf ${pool}${iocroot}/download
+                echo "  Destroying ${pool}${iocroot}/releases"
+                zfs destroy -rRf ${pool}${iocroot}/releases
                 exit 0
             else
                 echo "  Command not confirmed.  No action taken."
@@ -82,9 +82,9 @@ __clean () {
             read _answer
 
             if [ "$_answer" == "Y" -o "$_answer" == "y" ] ; then
-                echo "  Destroying $pool/iocage/jails"
-                zfs destroy -rRf $pool/iocage/jails
-                echo "  Cleaning TAGs at $pool/iocage/tags"
+                echo "  Destroying ${pool}${iocroot}/jails"
+                zfs destroy -rRf ${pool}${iocroot}/jails
+                echo "  Cleaning TAGs at ${pool}${iocroot}/tags"
                 rm -f ${iocroot}/tags/*
                 exit 0
             else
@@ -104,7 +104,7 @@ __create_basejail () {
     echo "Creating basejail ZFS datasets... please wait."
 
     for fs in $(echo $bfs_list) ; do
-        zfs create -o compression=lz4 -p $pool/iocage/base/${_release}/root/$fs
+        zfs create -o compression=lz4 -p ${pool}${iocroot}/base/${_release}/root/$fs
     done
 }
 
@@ -131,16 +131,16 @@ __reclone_basejail () {
     local fulluuid="$(__check_name $name)"
     local jail_release="$(__get_jail_prop release $fulluuid)"
 
-    zfs destroy -rRf $pool/iocage/base@$fulluuid
-    zfs snapshot -r  $pool/iocage/base@$fulluuid
+    zfs destroy -rRf ${pool}${iocroot}/base@$fulluuid
+    zfs snapshot -r  ${pool}${iocroot}/base@$fulluuid
 
     echo "* $fulluuid is a basejail, re-cloning jail.."
 
     # Re-clone required filesystems
     for fs in $bfs_list ; do
-        # echo "  re-cloning: $pool/iocage/jails/$fulluuid/root/$fs"
-        zfs clone $pool/iocage/base/$jail_release/root/$fs@$fulluuid \
-                  $pool/iocage/jails/$fulluuid/root/$fs
+        # echo "  re-cloning: ${pool}${iocroot}/jails/$fulluuid/root/$fs"
+        zfs clone ${pool}${iocroot}/base/$jail_release/root/$fs@$fulluuid \
+                  ${pool}${iocroot}/jails/$fulluuid/root/$fs
     done
 }
 
@@ -149,7 +149,7 @@ __create_jail () {
     local _installed _releases _zfsconfig _supported_release _configured \
           _zfsconfig
 
-    _installed=$(zfs list -r $pool/iocage/releases|grep $release)
+    _installed=$(zfs list -r ${pool}${iocroot}/releases|grep $release)
     _releases=$(__list_jails -r|grep -v "Downloaded releases:")
     _supported_release=$(echo "$release" | grep "RELEASE")
     _zfsconfig="$(__configure_jail generate)"
@@ -175,28 +175,28 @@ __create_jail () {
     fi
 
     if [ "${2}" = "-c" ] ; then
-        fs_list=$(zfs list -rH -o name $pool/iocage/releases/$release)
-        zfs snapshot -r $pool/iocage/releases/$release@$uuid
+        fs_list=$(zfs list -rH -o name ${pool}${iocroot}/releases/$release)
+        zfs snapshot -r ${pool}${iocroot}/releases/$release@$uuid
         for fs in $fs_list ; do
             cfs=$(echo $fs | sed s#/releases/$release#/jails/$uuid#g)
             eval "zfs clone ${_zfsconfig} \"$fs@$uuid\" \"$cfs\""
         done
         _configured="1"
     elif [ "${2}" = "-e" ] ; then
-        eval "zfs create -p ${_zfsconfig} \"$pool/iocage/jails/$uuid\""
-        zfs create -p $pool/iocage/jails/$uuid/root
+        eval "zfs create -p ${_zfsconfig} \"${pool}${iocroot}/jails/$uuid\""
+        zfs create -p ${pool}${iocroot}/jails/$uuid/root
         _configured="1"
     elif [ "${2}" = "-b" ] ; then
         export type=basejail
-        zfs snapshot -r $pool/iocage/base@$uuid
-        eval "zfs create -p ${_zfsconfig} \"$pool/iocage/jails/$uuid\""
+        zfs snapshot -r ${pool}${iocroot}/base@$uuid
+        eval "zfs create -p ${_zfsconfig} \"${pool}${iocroot}/jails/$uuid\""
         __set_jail_prop type=basejail ${uuid}
-        zfs create -o compression=lz4 -p $pool/iocage/jails/$uuid/root/usr
+        zfs create -o compression=lz4 -p ${pool}${iocroot}/jails/$uuid/root/usr
 
         for fs in $bfs_list ; do
             zfs clone -o compression=lz4 -o readonly=on \
-            $pool/iocage/base/${release}/root/$fs@$uuid \
-            $pool/iocage/jails/$uuid/root/$fs
+            ${pool}${iocroot}/base/${release}/root/$fs@$uuid \
+            ${pool}${iocroot}/jails/$uuid/root/$fs
         done
 
         for dir in $bdir_list ; do
@@ -205,15 +205,15 @@ __create_jail () {
         done
         _configured="1"
     else
-        zfs snapshot -r $pool/iocage/releases/$release@$uuid
-        zfs send     -R $pool/iocage/releases/$release@$uuid | \
-        zfs recv        $pool/iocage/jails/$uuid
-        zfs destroy  -r $pool/iocage/releases/$release@$uuid
-        zfs destroy  -r $pool/iocage/jails/$uuid@$uuid
+        zfs snapshot -r ${pool}${iocroot}/releases/$release@$uuid
+        zfs send     -R ${pool}${iocroot}/releases/$release@$uuid | \
+        zfs recv        ${pool}${iocroot}/jails/$uuid
+        zfs destroy  -r ${pool}${iocroot}/releases/$release@$uuid
+        zfs destroy  -r ${pool}${iocroot}/jails/$uuid@$uuid
     fi
 
     if [ "${_configured}" -ne "1" ] ; then
-        __configure_jail $pool/iocage/jails/$uuid
+        __configure_jail ${pool}${iocroot}/jails/$uuid
     fi
 
     touch $iocroot/jails/$uuid/fstab
@@ -274,7 +274,7 @@ __clone_jail () {
     if [ -z "$snapshot" ] ; then
         zfs snapshot -r ${dataset}@${uuid}
         for fs in $fs_list ; do
-            cfs="$(echo $fs | sed s#$dataset#$pool/iocage/jails/$uuid#g)"
+            cfs="$(echo $fs | sed s#$dataset#${pool}${iocroot}/jails/$uuid#g)"
             if [ $(echo $cfs | grep data$ | wc -l) -eq 1 ] ; then
                 zfs clone -o mountpoint=none -o jailed=on $fs@$uuid $cfs
             else
@@ -283,7 +283,7 @@ __clone_jail () {
         done
     else
         for fs in $fs_list ; do
-            cfs="$(echo $fs | sed s#$dataset#$pool/iocage/jails/$uuid#g)"
+            cfs="$(echo $fs | sed s#$dataset#${pool}${iocroot}/jails/$uuid#g)"
             if [ $(echo $cfs | grep data$ | wc -l) -eq 1 ] ; then
                 zfs clone -o mountpoint=none -o jailed=on $fs@$snapshot $cfs
             else
@@ -292,7 +292,7 @@ __clone_jail () {
         done
     fi
 
-    #__configure_jail $pool/iocage/jails/$uuid
+    #__configure_jail ${pool}${iocroot}/jails/$uuid
     mv $iocroot/jails/$uuid/fstab $iocroot/jails/$uuid/fstab.$name
     touch $iocroot/jails/$uuid/fstab
 
@@ -372,7 +372,7 @@ __destroy_func () {
         fi
 
         if [ $jail_type == "basejail" ] ; then
-            zfs destroy -fr $pool/iocage/base@$fulluuid
+            zfs destroy -fr ${pool}${iocroot}/base@$fulluuid
         fi
 
     elif [ "$state" -eq "1" ] ; then
