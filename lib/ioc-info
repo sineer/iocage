@@ -60,7 +60,7 @@ __find_jail () {
     local jlist="/tmp/iocage-jail-list.$$"
     local jails="$(zfs list -d1 -rH -o name ${pool}${iocroot}/jails \
                  | grep -E \
-                "^${pool}{$iocroot}/jails/[a-zA-Z0-9]{8,}-.*-.*-.*-[a-zA-Z0-9]{12,}$")"
+                "^${pool}${iocroot}/jails/[a-zA-Z0-9]{8,}*-*.[a-zA-Z0-9]{4,}$")"
 
     if [ "${name}" == "ALL" ] ; then
         for jail in $jails ; do

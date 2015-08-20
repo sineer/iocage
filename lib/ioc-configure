@@ -31,6 +31,8 @@ __configure_jail () {
                 _value="${jail_zfs_dataset}"
             elif [ "$prop_name" = "release" ] ; then
                 _value="${release}"
+            elif [ "$prop_name" = "super" ] ; then
+                _value="${super}"
             elif [ "$prop_name" = "hack88" ] ; then
                 _value="${hack88}"
             elif [ "$prop_name" = "resolver" ] ; then
