@@ -31,6 +31,7 @@ __init_host () {
                      && zfs set mountpoint=${iocroot} ${_remote_pool}${iocroot}
                      && mkdir ${iocroot}/log"
 
+    # TODO: add optional mbuffer piped to zfs send/recv if presend on both host & remote..
     for _fs in $(echo $_fs_list) ; do
         zfs snapshot -r ${pool}${_fs}@init
         zfs send -vR ${pool}${_fs}@init | ssh root@$_host "zfs recv ${_remote_pool}${_fs}"

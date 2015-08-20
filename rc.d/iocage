@@ -18,6 +18,7 @@
 
 name="iocage"
 rcvar=iocage_enable
+exec_cmd="/root/iocage/iocage"
 
 # read configuration and set defaults
 load_rc_config "$name"
@@ -29,14 +30,14 @@ stop_cmd="iocage_stop"
 iocage_start()
 {
     if checkyesno ${rcvar}; then
-        /usr/local/sbin/iocage rcboot
+        ${exec_cmd} rcboot
     fi
 }
 
 iocage_stop()
 {
     if checkyesno ${rcvar}; then
-        /usr/local/sbin/iocage rcshutdown
+        ${exec_cmd} rcshutdown
     fi
 }
 
