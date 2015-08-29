@@ -118,7 +118,7 @@ __list_jails () {
         exit 0
     fi
 
-    printf "%-4s  %-36s  %s  %s  %s\n" "JID" "UUID"  "BOOT"\
+    printf "%-4s  %-13s  %s  %s  %s\n" "JID" "UUID"  "BOOT"\
            "STATE" "TAG"
     for jail in $jails ; do
         uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $jail)
@@ -146,18 +146,18 @@ __list_jails () {
 
         if [ $switch == "-t" ] ; then
             if [ $template == "yes" ] ; then
-                printf "%-4s  %-+.36s  %-3s   %-4s   %s\n" "$jid" "$uuid" \
+                printf "%-4s  %-+.13s  %-3s   %-4s   %s\n" "$jid" "$uuid" \
                 "$boot" "$state" "$tag"
             fi
         elif [ $switch == "-b" ] ; then
             jail_type="$(__get_jail_prop type $uuid)"
             if [ $jail_type == "basejail" ] ; then
-                printf "%-4s  %-+.36s  %-3s   %-4s   %s\n" "$jid" "$uuid" \
+                printf "%-4s  %-+.13s  %-3s   %-4s   %s\n" "$jid" "$uuid" \
                 "$boot" "$state" "$tag"
             fi
         elif [ $switch != "-t" ] ; then
             if [ $template != "yes" ] ; then
-                printf "%-4s  %-+.36s  %-4s  %-4s   %s\n" "$jid" "$uuid"  \
+                printf "%-4s  %-+.13s  %-4s  %-4s   %s\n" "$jid" "$uuid"  \
                 "$boot" "$state" "$tag"
             fi
         fi
@@ -183,13 +183,13 @@ __list_jails () {
     if [ -n "$non_ioc_jids" ] ; then
         if [ $switch != "-t" ] ; then
             printf "%-+40s\n" "--- non iocage jails currently active ---"
-            printf "%-4s  %-36s  %-15s  %s \n" "JID" "PATH"\
+            printf "%-4s  %-13s  %-15s  %s \n" "JID" "PATH"\
                   "IP4" "HOSTNAME"
             for jid in $non_ioc_jids ; do
                 path=$(jls -j $jid  -h path | grep -v -x "path")
                 ip4=$(jls -j $jid  -h ip4.addr | grep -v -x "ip4.addr")
                 host_hostname=$(jls -j $jid  -h host.hostname | grep -v -x "host.hostname")
-                printf "%-4s  %-36.36s  %-15s  %s\n" "$jid" "$path"  \
+                printf "%-4s  %-36.13s  %-15s  %s\n" "$jid" "$path"  \
                         "$ip4" "$host_hostname"
             done
         fi
@@ -266,7 +266,7 @@ __list_jails_long () {
 __print_disk () {
     local jails=$(__find_jail ALL)
 
-    printf "%-36s  %-6s  %-5s  %-5s  %-5s  %-5s %-20s\n" "UUID" "CRT" "RES" "QTA" "USE" "AVA" "TAG"
+    printf "%-13s  %-6s  %-5s  %-5s  %-5s  %-5s %-20s\n" "UUID" "CRT" "RES" "QTA" "USE" "AVA" "TAG"
 
     for jail in $jails ; do
         uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $jail)
@@ -277,7 +277,7 @@ __print_disk () {
         ava=$(zfs get -H -o value available $jail)
         tag=$(zfs get -H -o value org.freebsd.iocage:tag $jail)
 
-        printf "%-36s  %-6s  %-5s  %-5s  %-5s  %-5s %-20s\n" "$uuid" "$crt" "$res" "$qta" \
+        printf "%-13s  %-6s  %-5s  %-5s  %-5s  %-5s %-20s\n" "$uuid" "$crt" "$res" "$qta" \
                "$use" "$ava" "$tag"
     done
 }

@@ -434,7 +434,7 @@ __check_filesystems () {
         fi
     done
 
-    if [ ${_missing} -gt 0 ] ; then
-        zfs mount -a
-    fi
+#    if [ ${_missing} -gt 0 ] ; then
+#        zfs mount -a
+#    fi
 }
