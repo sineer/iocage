@@ -285,8 +285,8 @@ bdir_list="dev
            proc
            mnt"
 
-# Superjail zfs clone filesystems list
-sfs_create_list="var"
+# Superjail zfs send | recv (xfer) filesystems list
+sfs_xfer_list="var"
 
 # Superjail zfs ceate filesystems list
 sfs_create_list="home
