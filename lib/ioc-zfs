@@ -214,7 +214,7 @@ __create_jail () {
 	${pool}${iocroot}/super/${super}/mroot@$uuid \
 	${pool}${iocroot}/jails/$uuid/root
 
-        zfs clone \
+        zfs clone -o readonly=off\
 	${pool}${iocroot}/super/${super}/skel@$uuid \
 	${pool}${iocroot}/jails/$uuid/root/s
 	for fs in $sfs_list ; do
@@ -223,6 +223,7 @@ __create_jail () {
 	    ${pool}${iocroot}/jails/$uuid/root/s/$fs
 	done	
 	zfs create ${pool}${iocroot}/jails/$uuid/root/s/tmp
+	zfs set readonly=off ${pool}${iocroot}/jails/$uuid/root/s/tmp
 	_configured="1"
     else
         zfs snapshot -r ${pool}${iocroot}/releases/$release@$uuid
