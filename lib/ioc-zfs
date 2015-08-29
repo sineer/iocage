@@ -207,6 +207,7 @@ __create_jail () {
     elif [ "${2}" = "-s" ] ; then
         export type=superjail
         zfs snapshot -r ${pool}${iocroot}/super/${super}@$uuid
+	zfs destroy ${pool}${iocroot}/super/${super}@$uuid
         eval "zfs create -p ${_zfsconfig} \"${pool}${iocroot}/jails/$uuid\""
         __set_jail_prop type=superjail ${uuid}
 
@@ -220,7 +221,8 @@ __create_jail () {
 	for fs in $sfs_xfer_list ; do
             zfs send ${pool}${iocroot}/super/${super}/skel/$fs@$uuid |
             zfs recv ${pool}${iocroot}/jails/$uuid/root/s/$fs
-	    zfs destroy ${pool}${iocroot}/super/${super}/skel/$fs@$uuid    
+	    zfs destroy ${pool}${iocroot}/super/${super}/skel/$fs@$uuid
+	    zfs destroy ${pool}${iocroot}/jails/$uuid/root/s/$fs@$uuid
 	done	
 	for fs in $sfs_create_list ; do
             zfs create ${pool}${iocroot}/jails/$uuid/root/s/$fs
