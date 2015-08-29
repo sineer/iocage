@@ -285,7 +285,10 @@ bdir_list="dev
            proc
            mnt"
 
-# Superjail filesystems
-sfs_list="home
+# Superjail zfs clone filesystems list
+sfs_create_list="var"
+
+# Superjail zfs ceate filesystems list
+sfs_create_list="home
           usr-local
-          var"
+          tmp"
