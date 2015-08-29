@@ -209,7 +209,7 @@ __create_jail () {
 	# TODO: MAKE SURE super EXIST...
 	local name="$(echo $super |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
 	local snapshot="$(echo $super |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
-	echo "CREATING SUPER JAIL BASED ON SUPER: $name @ $snapshot ..."
+	echo "CREATING SUPERJAIL UUID: $uuid BASED ON SUPER: $name @ $snapshot ..."
 	
         eval "zfs create -p ${_zfsconfig} \"${pool}${iocroot}/jails/$uuid\""
         __set_jail_prop type=superjail ${uuid}
@@ -224,8 +224,7 @@ __create_jail () {
 	for fs in $sfs_xfer_list ; do
             zfs send ${pool}${iocroot}/super/${name}/skel/$fs@$snapshot |
             zfs recv ${pool}${iocroot}/jails/$uuid/root/s/$fs
-#	    zfs destroy ${pool}${iocroot}/super/${name}/skel/$fs@$uuid
-#	    zfs destroy ${pool}${iocroot}/jails/$uuid/root/s/$fs@$uuid
+	    zfs destroy ${pool}${iocroot}/jails/$uuid/root/s/$fs@$snapshot
 	done	
 	for fs in $sfs_create_list ; do
             zfs create ${pool}${iocroot}/jails/$uuid/root/s/$fs
