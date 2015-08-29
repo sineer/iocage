@@ -206,7 +206,7 @@ __create_jail () {
         _configured="1"
     elif [ "${2}" = "-s" ] ; then
         export type=superjail
-        zfs snapshot -r ${pool}${iocroot}/super@$uuid
+        zfs snapshot -r ${pool}${iocroot}/super/${super}@$uuid
         eval "zfs create -p ${_zfsconfig} \"${pool}${iocroot}/jails/$uuid\""
         __set_jail_prop type=superjail ${uuid}
 
@@ -224,6 +224,8 @@ __create_jail () {
 	done	
 	zfs create ${pool}${iocroot}/jails/$uuid/root/s/tmp
 	zfs set readonly=off ${pool}${iocroot}/jails/$uuid/root/s/tmp
+
+	zfs destroy -r ${pool}${iocroot}/super/${super}@$uuid
 	_configured="1"
     else
         zfs snapshot -r ${pool}${iocroot}/releases/$release@$uuid
