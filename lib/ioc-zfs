@@ -215,16 +215,16 @@ __create_jail () {
         __set_jail_prop type=superjail ${uuid}
 
 	zfs clone -o readonly=on \
-	${pool}${iocroot}/super/${super}/mroot@$snapshot \
+	${pool}${iocroot}/super/${name}/mroot@$snapshot \
 	${pool}${iocroot}/jails/$uuid/root
 
         zfs clone -o readonly=off \
-	${pool}${iocroot}/super/${super}/skel@$snapshot \
+	${pool}${iocroot}/super/${name}/skel@$snapshot \
 	${pool}${iocroot}/jails/$uuid/root/s
 	for fs in $sfs_xfer_list ; do
-            zfs send ${pool}${iocroot}/super/${super}/skel/$fs@$snapshot |
+            zfs send ${pool}${iocroot}/super/${name}/skel/$fs@$snapshot |
             zfs recv ${pool}${iocroot}/jails/$uuid/root/s/$fs
-#	    zfs destroy ${pool}${iocroot}/super/${super}/skel/$fs@$uuid
+#	    zfs destroy ${pool}${iocroot}/super/${name}/skel/$fs@$uuid
 #	    zfs destroy ${pool}${iocroot}/jails/$uuid/root/s/$fs@$uuid
 	done	
 	for fs in $sfs_create_list ; do
