@@ -417,10 +417,12 @@ __check_filesystems () {
     _missing=0
 
     _filesystems="${iocroot}
+                  ${iocroot}/log
                   ${iocroot}/jails
                   ${iocroot}/.defaults
                   ${iocroot}/download
-                  ${iocroot}/releases"
+                  ${iocroot}/releases
+                  ${iocroot}/super"
 
     # Loop through and make sure the filesystems exist. Make sure you are root
     for _fs in $(echo ${_filesystems}) ; do
@@ -441,6 +443,7 @@ __check_filesystems () {
         fi
     done
 
+    # TODO: (ioc-mount) ZFS AutoMount missing pools if required...
 #    if [ ${_missing} -gt 0 ] ; then
 #        zfs mount -a
 #    fi
