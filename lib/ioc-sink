@@ -27,7 +27,10 @@ __sink () {
     if [ "$(cat $jlist|wc -l)" -eq "1" ] ; then
 	local jpool=$(cat $jlist)
 	uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $jpool)
+	zfs set jailed=off ${jpool}/data
 	zfs rename $jpool ${pool}${iocroot}/sinks/${uuid}
+
+	# TODO: ZFS SNAPSHOT ?
 	exit 0
     elif [ "$(cat $jlist|wc -l)" -gt "1" ] ; then
         #echo "multiple"
