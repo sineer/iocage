@@ -28,6 +28,7 @@ __sink () {
 	local jpool=$(cat $jlist)
 	uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $jpool)
 	zfs set jailed=off ${jpool}/data
+	#zfs set mountpoint=${pool}${iocroot}/sinks/${uuid}/data ${jpool}/data
 	zfs rename $jpool ${pool}${iocroot}/sinks/${uuid}
 
 	# TODO: ZFS SNAPSHOT ?
@@ -39,6 +40,39 @@ __sink () {
 }
 
 __unsink () {
+    local name=$1
+    local slist="/tmp/iocage-sink-list.$$"
+    local sinks="$(zfs list -d1 -rH -o name ${pool}${iocroot}/sinks \
+                 | grep -E \
+                "^${pool}${iocroot}/sinks/[a-zA-Z0-9]{8,}*-*.[a-zA-Z0-9]{4,}$")"
+    
+    for sink in $sinks ; do
+        found="$(echo $sink |grep -iE "^${pool}${iocroot}/sinks/$name"|wc -l)"
+        local tag="$(zfs get -H -o value org.freebsd.iocage:tag $sink)"
+
+        if [ "$found" -eq 1 ] ; then
+            echo $sink >> $slist
+        fi
+
+        if [ $tag == $name ] ; then
+            echo $sink >> $slist
+        fi
+    done
+
+    if [ ! -e $slist ] ; then
+        exit 0
+    fi
+
+    if [ "$(cat $slist|wc -l)" -eq "1" ] ; then
+	local spool=$(cat $slist)
+	uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $spool)
+	zfs rename $spool ${pool}${iocroot}/jails/${uuid}
+	zfs set jailed=on ${pool}${iocroot}/jails/${uuid}/data
+	exit 0
+    elif [ "$(cat $jlist|wc -l)" -gt "1" ] ; then
+        #echo "multiple"
+	exit 1
+    fi
 	 
 }
 
@@ -170,37 +204,4 @@ __list_sinks_long () {
         fi
 
     done
-}
-
-__get_sink_name () {
-    for i in $@; do
-        :;
-    done
-
-    echo $i
-}
-
-__check_name () {
-    local name=$1
-
-    if [ -z $name ] ; then
-        echo "ERROR"
-        exit 1
-    fi
-
-    local dataset=$(__find_sink $name)
-
-    if [ -z $dataset ] ; then
-        echo "  ERROR: sink $name not found!"
-        exit 1
-    fi
-
-    if [ $dataset == "multiple" ] ; then
-        echo "  ERROR: multiple matching UUIDs!"
-        exit 1
-    fi
-
-    local uuid="$(__get_jail_prop host_hostuuid $name)"
-
-    echo "$uuid"
 }
