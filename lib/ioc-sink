@@ -1,5 +1,44 @@
 #!/bin/sh
 
+__sink () {
+    local name=$1
+    local jlist="/tmp/iocage-jail-list.$$"
+    local jails="$(zfs list -d1 -rH -o name ${pool}${iocroot}/jails \
+                 | grep -E \
+                "^${pool}${iocroot}/jails/[a-zA-Z0-9]{8,}*-*.[a-zA-Z0-9]{4,}$")"
+    
+    for jail in $jails ; do
+        found="$(echo $jail |grep -iE "^${pool}${iocroot}/jails/$name"|wc -l)"
+        local tag="$(zfs get -H -o value org.freebsd.iocage:tag $jail)"
+
+        if [ "$found" -eq 1 ] ; then
+            echo $jail >> $jlist
+        fi
+
+        if [ $tag == $name ] ; then
+            echo $jail >> $jlist
+        fi
+    done
+
+    if [ ! -e $jlist ] ; then
+        exit 0
+    fi
+
+    if [ "$(cat $jlist|wc -l)" -eq "1" ] ; then
+	local jpool=$(cat $jlist)
+	uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $jpool)
+	zfs rename $jpool ${pool}${iocroot}/sinks/${uuid}
+	exit 0
+    elif [ "$(cat $jlist|wc -l)" -gt "1" ] ; then
+        #echo "multiple"
+	exit 1
+    fi
+}
+
+__unsink () {
+	 
+}
+
 # Find and return the jail's top level ZFS dataset
 
 __find_sink () {

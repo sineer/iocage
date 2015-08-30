@@ -88,11 +88,13 @@ __parse_cmd () {
             promote)    __promote "$2"
                         exit
                 ;;
-            pull)       __export_props "$@"
-                        __pull "$2"
+            pull)       __pull "$2"
                         exit
                 ;;
             push)       __push "$2"
+                        exit
+                ;;
+            deploy)     __deploy "$2"
                         exit
                 ;;
             rcboot)     __rc_jails boot
@@ -148,6 +150,12 @@ __parse_cmd () {
                         exit
                 ;;
             upgrade)     __upgrade "$2"
+                         exit
+		;;
+            sink)     __sink "$2"
+                        exit
+                ;;
+            unsink)     __unsink "$2"
                         exit
                 ;;
                 *)      __usage

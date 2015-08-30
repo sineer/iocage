@@ -262,6 +262,18 @@ SUBCOMMANDS
     Promote a cloned jail to a fully independent copy. For more details please
     read zfs(8).
 
+  pull UUID|TAG
+
+    TODO Pull Info Documentation...
+
+  push UUID|TAG
+
+    TODO Push Info Documentation...
+
+  deploy UUID|TAG
+
+    TODO Deploy Info Documentation...
+
   rcboot
 
     Start all jails with "boot" property set to "on". Intended for boot time
