@@ -217,6 +217,7 @@ __create_jail () {
 	zfs clone -o readonly=on \
 	${pool}${iocroot}/super/${name}/mroot@$snapshot \
 	${pool}${iocroot}/jails/$uuid/root
+	zfs snapshot ${pool}${iocroot}/jails/$uuid/root@snapshot
 
         zfs clone -o readonly=off \
 	${pool}${iocroot}/super/${name}/skel@$snapshot \

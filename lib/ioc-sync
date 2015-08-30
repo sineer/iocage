@@ -1,0 +1,26 @@
+#!/bin/sh
+
+__pull () {
+    local _local_pool _remote_pool _local_snapshot _remote_snapshot \
+	  _uuid _ssh_host _ssh_port
+
+    _uuid="$1"
+    _ssh_host="$2"
+    _ssh_port="$3"
+
+    # TODO: use zfs properties to save ssh_host and ssh_port options
+    #       and make 2nd and 3rd arg optional.
+
+}
+
+
+__push () {
+
+    # TODO ...
+}
+
+
+__deploy () {
+
+    # TODO ...
+}
