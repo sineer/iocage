@@ -138,6 +138,11 @@ ftpfiles="base.txz"
 # Git properties
 gitlocation="https://github.com"
 
+# Sink properties
+last_pull="none"
+last_push="none"
+sink_origin="none"
+
 # Resource limits
 CONF_RCTL="memoryuse
            memorylocked
@@ -258,6 +263,11 @@ CONF_FTP="ftphost
 # git properties
 CONF_GIT="gitlocation
           branch"
+
+# Sink Properties
+CONF_SINK="last_pull
+           last_push
+           sink_origin"
 
 # Basejail filesystems
 bfs_list="bin

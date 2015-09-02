@@ -72,8 +72,7 @@ __unsink () {
     elif [ "$(cat $jlist|wc -l)" -gt "1" ] ; then
         #echo "multiple"
 	exit 1
-    fi
-	 
+    fi	 
 }
 
 # Find and return the jail's top level ZFS dataset
@@ -127,19 +126,8 @@ __list_sinks () {
         __list_sinks_long
         exit 0
     fi
-
-    if [ ! -z ${switch} ] && [ $switch == "-r" ] ; then
-        echo "Downloaded releases:"
-        local releases="$(zfs list -o name -Hr ${pool}${iocroot}/releases \
-                        | grep RELEASE$ | cut -d \/ -f 4)"
-        for rel in $(echo $releases) ; do
-            printf "%15s\n" "$rel"
-        done
-        exit 0
-    fi
-
-    printf "%-4s  %-13s  %s  %s  %s\n" "JID" "UUID"  "BOOT"\
-           "STATE" "TAG"
+    
+    printf "%-13s %s\n" "UUID" "TAG"
     for sink in $sinks ; do
         uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $sink)
         boot=$(zfs get -H -o value org.freebsd.iocage:boot $sink)
@@ -149,8 +137,7 @@ __list_sinks () {
         template=$(zfs get -H -o value org.freebsd.iocage:template $sink)
 
 	# TODO ...	
-	printf "%-4s  %-+.13s  %-4s  %-4s   %s\n" "$jid" "$uuid"  \
-                "$boot" "$state" "$tag"
+	printf "%-+.13s %s\n" "$uuid" "$tag"
     done
 }
 

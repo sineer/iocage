@@ -421,7 +421,8 @@ __check_filesystems () {
                   ${iocroot}/.defaults
                   ${iocroot}/download
                   ${iocroot}/releases
-                  ${iocroot}/super"
+                  ${iocroot}/super
+                  ${iocroot}/sinks"
 
     # Loop through and make sure the filesystems exist. Make sure you are root
     for _fs in $(echo ${_filesystems}) ; do
