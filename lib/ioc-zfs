@@ -206,30 +206,35 @@ __create_jail () {
         _configured="1"
     elif [ "${2}" = "-s" ] ; then
         export type=superjail
-	# TODO: MAKE SURE super EXIST...
-	local name="$(echo $super |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
-	local snapshot="$(echo $super |  awk 'BEGIN { FS = "@" } ; { print $2 }')"
-	echo "CREATING SUPERJAIL UUID: $uuid BASED ON SUPER: $name @ $snapshot ..."
+	local _supername="$(echo $super |  awk 'BEGIN { FS = "@" } ; { print $1 }')"
+	# TODO: CHECK _supername EXIST...
+	echo "CREATING SUPERJAIL UUID: $uuid BASED ON SUPER: $_supername"
 	
         eval "zfs create -p ${_zfsconfig} \"${pool}${iocroot}/jails/$uuid\""
         __set_jail_prop type=superjail ${uuid}
 
-	zfs clone -o readonly=on \
-	${pool}${iocroot}/super/${name}/mroot@$snapshot \
+	zfs snapshot ${pool}${iocroot}/super/${_supername}/mroot@$_supername
+	zfs clone \
+	${pool}${iocroot}/super/${_supername}/mroot@$_supername \
 	${pool}${iocroot}/jails/$uuid/root
-	zfs snapshot ${pool}${iocroot}/jails/$uuid/root@snapshot
+	zfs snapshot ${pool}${iocroot}/jails/$uuid/root@$_supername
 
-        zfs clone -o readonly=off \
-	${pool}${iocroot}/super/${name}/skel@$snapshot \
-	${pool}${iocroot}/jails/$uuid/root/s
+	zfs snapshot -r ${pool}${iocroot}/super/${_supername}@$uuid
+        zfs send ${pool}${iocroot}/super/${_supername}/skel@$uuid |
+        zfs recv ${pool}${iocroot}/jails/$uuid/root/s
+	zfs set readonly=off ${pool}${iocroot}/jails/$uuid/root/s
+	
 	for fs in $sfs_xfer_list ; do
-            zfs send ${pool}${iocroot}/super/${name}/skel/$fs@$snapshot |
+            zfs send ${pool}${iocroot}/super/${_supername}/skel/$fs@$uuid |
             zfs recv ${pool}${iocroot}/jails/$uuid/root/s/$fs
-	    zfs destroy ${pool}${iocroot}/jails/$uuid/root/s/$fs@$snapshot
-	done	
+	    zfs destroy ${pool}${iocroot}/jails/$uuid/root/s/$fs@$uuid
+	done
+	zfs destroy -r ${pool}${iocroot}/super/${_supername}@$uuid
+
 	for fs in $sfs_create_list ; do
             zfs create ${pool}${iocroot}/jails/$uuid/root/s/$fs
 	done
+	zfs set readonly=on ${pool}${iocroot}/jails/$uuid/root
 	_configured="1"
     else
         zfs snapshot -r ${pool}${iocroot}/releases/$release@$uuid
