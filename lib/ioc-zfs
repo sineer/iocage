@@ -111,9 +111,11 @@ __create_basejail () {
 __create_superjail () {
     local _supername=$1
     local _superskel=$2
+    local _supertype=$3
     local _super_mroot="$(zfs list -d1 -rH -o name ${pool}${iocroot}/super | grep $_supername)"
-    if [ $(echo $_super_mroot | wc -l) -ne 1 ]; then
-	if [ $! == 0 ]; then
+    local _mroot_count=$(echo $_super_mroot | wc -l)
+    if [ $_mroot_count -ne 1 ]; then
+	if [ $_mroot_count == 0 ]; then
 	    echo "SUPER: $_supername MROOT NOT FOUND ERROR!"
 	else
 	    echo "SUPER: $_supername MULTIPLE SUPER MROOT FOUND ERROR!"
@@ -123,50 +125,51 @@ __create_superjail () {
 
     local _skel_path
     if [ -z $_superskel ]; then
-	_skel_path="$(zfs list -d1 -rH -o name $_super_mroot | grep $_supername)"
-	if [ $(echo $_super_mroot | wc -l) -ne 1 ]; then
-	    if [ $! == 0 ]; then
-		echo "SUPER: $_supername MROOT NOT FOUND ERROR!"
-	    else
-		echo "SUPER: $_supername MULTIPLE SUPER MROOT FOUND ERROR!"
-	    fi
-	    exit 1
-	fi
-	_skel_path="$(echo $_skel_path | sed 's/mroot/skel/g')" 
+	_skel_path="$(zfs list -d1 -rH -o name ${_super_mroot} | grep 'skel')"
     else
-	# TODO: VALIDATE SKEL PATH...
-	exit 1
+	_skel_path=_superskel
     fi
+    # TODO: VALIDATE SKEL PATH...
 
+    if [ -z $_supertype]; then
+	_supertype="superjail"
+    fi
+    export type=$_supertype
+    
+    local _destpool="${pool}${iocroot}/jails/$uuid"
+    if [ type == "sink" ]; then
+	_destpool="${pool}${iocroot}/sinks/$uuid"
+    fi
+       
     echo "CREATING SUPERJAIL UUID: $uuid BASED ON SUPER: $_supername USING MROOT: $_super_mroot"
+    eval "zfs create -p ${_zfsconfig} ${_destpool}"
 
-    export type=superjail    
-    eval "zfs create -p ${_zfsconfig} \"${pool}${iocroot}/jails/$uuid\""
-    __set_jail_prop type=superjail ${uuid}
+    zfs snapshot ${_super_mroot}@$_supername
+    zfs clone \
+	${_super_mroot}/mroot@$_supername \
+	${_destpool}/root
+    zfs snapshot ${_destpool}/root@$_supername
+
+    __set_jail_prop type="$_supertype" ${uuid}
+    __set_jail_prop super_name=$super ${uuid}
     __set_jail_prop super_mroot=$_super_mroot ${uuid}
 
-    zfs snapshot ${_supe_mroot}@$_supername
-    zfs clone \
-	${_supe_mroot}@$_supername \
-	${pool}${iocroot}/jails/$uuid/root
-    zfs snapshot ${pool}${iocroot}/jails/$uuid/root@$_supername
-
-    zfs snapshot -r ${pool}${iocroot}/super/${_supername}@$uuid
+    zfs snapshot -r ${_skel_path}@$uuid
     zfs send ${_skel_path}@$uuid |
-        zfs recv ${pool}${iocroot}/jails/$uuid/root/s
-    zfs set readonly=off ${pool}${iocroot}/jails/$uuid/root/s
+        zfs recv ${_destpool}/root/s
+    zfs set readonly=off ${_destpool}/root/s
     
     for fs in $sfs_xfer_list ; do
         zfs send ${_skel_path}/$fs@$uuid |
-            zfs recv ${pool}${iocroot}/jails/$uuid/root/s/$fs
-	zfs destroy ${pool}${iocroot}/jails/$uuid/root/s/$fs@$uuid
+            zfs recv ${_destpool}/root/s/$fs
+	zfs destroy ${_destpool}/root/s/$fs@$uuid
     done
     zfs destroy -r ${pool}${iocroot}/super/${_supername}@$uuid
 
     for fs in $sfs_create_list ; do
-        zfs create ${pool}${iocroot}/jails/$uuid/root/s/$fs
+        zfs create ${_destpool}/root/s/$fs
     done
-    zfs set readonly=on ${pool}${iocroot}/jails/$uuid/root
+    zfs set readonly=on ${_destpool}/root
 }
 
 

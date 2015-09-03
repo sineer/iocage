@@ -114,6 +114,7 @@ jail_zfs="off"
 jail_zfs_dataset="/jails/${uuid}/data"
 mount_procfs="0"
 hack88="0"
+super_name="none"
 super_mroot="none"
 
 # Native ZFS properties
@@ -240,6 +241,7 @@ CONF_CUSTOM="tag
              jail_zfs_dataset
              release
              hack88
+             super_name
              super_mroot"
 
 # Native ZFS properties

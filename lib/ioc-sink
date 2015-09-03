@@ -1,42 +1,32 @@
 #!/bin/sh
 
 __sink () {
-    local name=$1
-    local jlist="/tmp/iocage-jail-list.$$"
-    local jails="$(zfs list -d1 -rH -o name ${pool}${iocroot}/jails \
-                 | grep -E \
-                "^${pool}${iocroot}/jails/[a-zA-Z0-9]{8,}*-*.[a-zA-Z0-9]{4,}$")"
+    local _name=$1
+    local _jpool="$(__find_jail $_name)"
     
-    for jail in $jails ; do
-        found="$(echo $jail |grep -iE "^${pool}${iocroot}/jails/$name"|wc -l)"
-        local tag="$(zfs get -H -o value org.freebsd.iocage:tag $jail)"
-
-        if [ "$found" -eq 1 ] ; then
-            echo $jail >> $jlist
-        fi
-
-        if [ $tag == $name ] ; then
-            echo $jail >> $jlist
-        fi
-    done
-
-    if [ ! -e $jlist ] ; then
-        exit 0
+    if [ -z "$_jpool" ] ; then
+        echo "  ERROR: jail $_name not found!"
+        exit 1
     fi
 
-    if [ "$(cat $jlist|wc -l)" -eq "1" ] ; then
-	local jpool=$(cat $jlist)
-	uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $jpool)
-	zfs set jailed=off ${jpool}/data
-	#zfs set mountpoint=${pool}${iocroot}/sinks/${uuid}/data ${jpool}/data
-	zfs rename $jpool ${pool}${iocroot}/sinks/${uuid}
-
-	# TODO: ZFS SNAPSHOT ?
-	exit 0
-    elif [ "$(cat $jlist|wc -l)" -gt "1" ] ; then
-        #echo "multiple"
-	exit 1
+    if [ "$_jpool" == "multiple" ] ; then
+        echo "  ERROR: multiple matching UUIDs!"
+        exit 1
     fi
+
+    uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $_jpool)
+    type=$(zfs get -H -o value org.freebsd.iocage:type $_jpool)
+#    Zfs set jailed=off ${_jpool}/data
+    if [ $type == "superjail" ]; then
+	local _super_name=$(zfs get -H -o value org.freebsd.iocage:super_name $_jpool)
+	local _super_mroot=$(zfs get -H -o value org.freebsd.iocage:super_mroot $_jpool)
+	local _skel_path="${_jpool}/root/s"
+	__create_superjail $_super_name $_skel_path "sink"
+    fi
+    # TODO: SUPPORT OTHER TYPE OF JAILs...
+   
+    # TODO: ZFS SNAPSHOT ?
+    exit 0
 }
 
 __unsink () {
