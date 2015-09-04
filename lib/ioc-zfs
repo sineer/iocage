@@ -111,7 +111,7 @@ __create_basejail () {
 __create_superjail () {
     local _supername=$1
     local _superskel=$2
-    local _supertype=$3
+    local _jailtype=$3
     local _super_mroot="$(zfs list -d1 -rH -o name ${pool}${iocroot}/super | grep $_supername)"
     local _mroot_count=$(echo $_super_mroot | wc -l)
     if [ $_mroot_count -ne 1 ]; then
@@ -123,21 +123,19 @@ __create_superjail () {
 	exit 1
     fi
 
-    local _skel_path
+    local _skel_pool
     if [ -z $_superskel ]; then
-	_skel_path="$(zfs list -d1 -rH -o name ${_super_mroot} | grep 'skel')"
+	_skel_pool="$(zfs list -d1 -rH -o name ${_super_mroot} | grep 'skel')"
     else
-	_skel_path=_superskel
+	_skel_pool=$_superskel
     fi
-    # TODO: VALIDATE SKEL PATH...
-
-    if [ -z $_supertype]; then
-	_supertype="superjail"
+    if [ $(zfs list -d0 -rH -o name ${_skel_pool} | wc -l) -ne "1" ]; then
+	echo "Invalid skel pool: $_skel_pool"
+	exit 1
     fi
-    export type=$_supertype
     
     local _destpool="${pool}${iocroot}/jails/$uuid"
-    if [ type == "sink" ]; then
+    if [ $_jailtype == "sink" ]; then
 	_destpool="${pool}${iocroot}/sinks/$uuid"
     fi
        
@@ -150,28 +148,65 @@ __create_superjail () {
 	${_destpool}/root
     zfs snapshot ${_destpool}/root@$_supername
 
-    __set_jail_prop type="$_supertype" ${uuid}
-    __set_jail_prop super_name=$super ${uuid}
-    __set_jail_prop super_mroot=$_super_mroot ${uuid}
-
-    zfs snapshot -r ${_skel_path}@$uuid
-    zfs send ${_skel_path}@$uuid |
+    zfs snapshot -r ${_skel_pool}@$uuid
+    zfs send ${_skel_pool}@$uuid |
         zfs recv ${_destpool}/root/s
     zfs set readonly=off ${_destpool}/root/s
     
     for fs in $sfs_xfer_list ; do
-        zfs send ${_skel_path}/$fs@$uuid |
+        zfs send ${_skel_pool}/$fs@$uuid |
             zfs recv ${_destpool}/root/s/$fs
 	zfs destroy ${_destpool}/root/s/$fs@$uuid
     done
-    zfs destroy -r ${pool}${iocroot}/super/${_supername}@$uuid
 
-    for fs in $sfs_create_list ; do
-        zfs create ${_destpool}/root/s/$fs
-    done
-    zfs set readonly=on ${_destpool}/root
+    if [ $_jailtype != "sink" ]; then
+	# TODO: LIST ZFS FS AND SNAP THEM ALL INSTAED OF FIXED HARCODED LIST OF POOLS...
+	for fs in $sfs_create_list ; do
+            zfs create ${_destpool}/root/s/$fs
+	done
+	zfs set readonly=on ${_destpool}/root
+
+	__set_jail_prop type="superjail ${uuid}
+	__set_jail_prop super_name=$super ${uuid}
+	__set_jail_prop super_mroot=$_super_mroot ${uuid}
+    else
+	# COPY FS when SINKing...
+	for fs in $sfs_create_list ; do
+            zfs send ${_skel_pool}/$fs@$uuid |
+		zfs recv ${_destpool}/root/s/$fs
+	done
+
+	__set_sink_prop type="superjail" ${uuid}
+	__set_sink_prop super_name=$super ${uuid}
+	__set_sink_prop super_mroot=$_super_mroot ${uuid}
+    fi
+    
+    zfs destroy -r ${_skel_pool}@$uuid	
 }
 
+
+__clone_iocage_zfs_properties () {
+    local _src_pool=$1
+    local _dst_pool=$2
+
+    #TODO: Validate src/dst pools exists...
+    
+    local _src_props="$(zfs get -o property,value all $_src_pool | grep org.freebsd.iocage)"
+    local _props_cnt=$(echo $_src_props | wc -l)
+    if [ _props_cnt <= 0 ]; then
+	echo "NO IOCAGE PROP FOUND FOR SOURCE ZFS POOL: $_src_pool"
+    else
+	for prop in $props ; do
+	    local _name="$(echo $prop |  awk 'BEGIN { FS = "[ \t]*|[ \t]+" } ; { print "$1" }')"
+	    local _prop="$(echo $prop |  awk 'BEGIN { FS = "[ \t]*|[ \t]+" } ; { print "\"$2\"" }')"
+	    if [ -z $_prop ]; then
+		echo "ERROR PARSING ZFS PROPERTY: $_name"
+	    else
+ 		zfs set $_name=${_prop} $_dst_pool
+	    fi
+	done
+    fi
+}
 
 __reclone_basejail () {
     local name=$1

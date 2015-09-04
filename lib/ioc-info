@@ -84,7 +84,24 @@ __find_jail () {
         done
 
         if [ ! -e $jlist ] ; then
-            exit 0
+	    # TRY TO FIND JAIL IN SINK(s)
+	    jails=$(__find_sink ALL)
+            for jail in $jails ; do
+		found="$(echo $jail |grep -iE "^${pool}${iocroot}/sinks/$name"|wc -l)"
+		local tag="$(zfs get -H -o value org.freebsd.iocage:tag $jail)"
+
+		if [ "$found" -eq 1 ] ; then
+                    echo $jail >> $jlist
+		fi
+
+		if [ $tag == $name ] ; then
+                    echo $jail >> $jlist
+		fi
+            done
+
+            if [ ! -e $jlist ] ; then
+		exit 0
+            fi    
         fi
 
         if [ "$(cat $jlist|wc -l)" -eq "1" ] ; then
@@ -348,7 +365,8 @@ __get_jail_prop () {
            $CONF_CUSTOM
            $CONF_SYNC
            $CONF_FTP
-           $CONF_GIT"
+           $CONF_GIT
+           $CONF_SINK"
 
     if [ -z "$_property" ] ; then
         echo "  ERROR: get failed, incorrect property syntax!"

@@ -21,10 +21,16 @@ __sink () {
 	local _super_name=$(zfs get -H -o value org.freebsd.iocage:super_name $_jpool)
 	local _super_mroot=$(zfs get -H -o value org.freebsd.iocage:super_mroot $_jpool)
 	local _skel_path="${_jpool}/root/s"
+
+	super=$_super_name
 	__create_superjail $_super_name $_skel_path "sink"
+	__clone_iocage_zfs_properties
+	__set_sink_prop type="sink" ${uuid}
     fi
     # TODO: SUPPORT OTHER TYPE OF JAILs...
-   
+
+    __set_jail_prop sink_origin=$_jail_uuid ${uuid} 
+    
     # TODO: ZFS SNAPSHOT ?
     exit 0
 }
