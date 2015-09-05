@@ -151,6 +151,7 @@ __create_superjail () {
 	${_destpool}/root
 #    zfs snapshot ${_destpool}/root@$_snapshot
 #    zfs destroy ${_super_mroot}@$_snapshot
+    zfs set readonly=on ${_destpool}/root
 
     local _snapshot="$(date "+%F-%T")"
     
@@ -159,26 +160,24 @@ __create_superjail () {
         zfs recv ${_destpool}/root/s
     zfs set readonly=off ${_destpool}/root/s
     
-    for fs in $sfs_xfer_list ; do
-        zfs send ${_skel_pool}/$fs@$_snapshot |
-            zfs recv ${_destpool}/root/s/$fs
-	zfs destroy ${_destpool}/root/s/$fs@$_snapshot
-    done
-
     if [ $_jailtype != "sink" ]; then
-	# TODO: LIST ZFS FS AND SNAP THEM ALL INSTAED OF FIXED HARCODED LIST OF POOLS...
+
+	for fs in $sfs_xfer_list ; do
+            zfs send ${_skel_pool}/$fs@$_snapshot |
+		zfs recv ${_destpool}/root/s/$fs
+	    zfs destroy ${_destpool}/root/s/$fs@$_snapshot
+	done
+
 	for fs in $sfs_create_list ; do
             zfs create ${_destpool}/root/s/$fs
 	done
-	zfs set readonly=on ${_destpool}/root
 
 	__set_jail_prop type=$_jailtype ${uuid}
 	__set_jail_prop super_name=$super ${uuid}
 	__set_jail_prop super_mroot=$_super_mroot ${uuid}
     else
-	# TODO LIST ALL SUB-POOLS USING zfs INSTEAD OF USING THIS HARDCODED sfs_create_list..
-	# COPY SKEL SUB-POOL(s)
-	for fs in $sfs_create_list ; do
+	local _skel_sub_pools=$(zfs list -d1 -rH -o name ${_skel_pool} | awk 'NR > 1 { print }')	
+	for fs in $_skel_sub_pools; do
             zfs send ${_skel_pool}/$fs@$_snapshot |
 		zfs recv ${_destpool}/root/s/$fs
 	done
@@ -208,9 +207,9 @@ __clone_iocage_zfs_properties () {
 	for prop in $_src_props; do
 	    local _name="$(echo $prop | awk 'BEGIN { FS = "\t" } ; { print $1 }')"
 	    local _prop="$(echo $prop | awk 'BEGIN { FS = "\t" } ; { print $2 }')"
-	    local _zfs_set_cmd="zfs set $_name=\"$_prop\" $_dst_pool"
+	    local _zfs_set_args="$_name=\"$_prop\""
             echo $_zfs_set_cmd
- 	    $($_zfs_set_cmd)
+ 	    zfs set $_zfs_set_args $_dst_pool
 	done
     fi
 }
