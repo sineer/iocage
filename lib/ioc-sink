@@ -81,23 +81,23 @@ __find_sink () {
                  | grep -E \
                 "^${pool}${iocroot}/sinks/[a-zA-Z0-9]{8,}*-*.[a-zA-Z0-9]{4,}$")"
 
+    local _ifs=$IFS
+    IFS=$'\n'
     if [ "${name}" == "ALL" ] ; then
-        for s in $sinks ; do
-            echo $s
+        for sink in $sinks ; do
+            echo $sink
         done
     elif [ "${name}" == "default" ] ; then
         exit 1
     else
-        for s in $sinks ; do
-            found="$(echo $s | grep -iE "^${pool}${iocroot}/sinks/$name"|wc -l)"
-            local tag="$(zfs get -H -o value org.freebsd.iocage:tag $s)"
+        for sink in $sinks ; do
+            found="$(echo $sink | grep -iE "^${pool}${iocroot}/sinks/$name"|wc -l)"
+            local tag="$(zfs get -H -o value org.freebsd.iocage:tag $sink)"
 
             if [ "$found" -eq 1 ] ; then
-                echo $s >> $slist
-            fi
-
-            if [ $tag == $name ] ; then
-                echo $s >> $slist
+                echo $sink >> $slist
+            elseif [ $tag == $name ] ; then
+                echo $sink >> $slist
             fi
         done
 
@@ -113,6 +113,7 @@ __find_sink () {
     fi
 
     rm  -f $slist
+    IFS=$_ifs
 }
 
 __list_sinks () {
