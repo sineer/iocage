@@ -149,17 +149,20 @@ __create_superjail () {
     zfs clone \
 	${_super_mroot}/mroot@$_supername \
 	${_destpool}/root
-    zfs snapshot ${_destpool}/root@$_supername
+#    zfs snapshot ${_destpool}/root@$_snapshot
+#    zfs destroy ${_super_mroot}@$_snapshot
 
-    zfs snapshot -r ${_skel_pool}@$uuid
-    zfs send ${_skel_pool}@$uuid |
+    local _snapshot="$(date "+%F-%T")"
+    
+    zfs snapshot -r ${_skel_pool}@$_snapshot
+    zfs send ${_skel_pool}@$_snapshot |
         zfs recv ${_destpool}/root/s
     zfs set readonly=off ${_destpool}/root/s
     
     for fs in $sfs_xfer_list ; do
-        zfs send ${_skel_pool}/$fs@$uuid |
+        zfs send ${_skel_pool}/$fs@$_snapshot |
             zfs recv ${_destpool}/root/s/$fs
-	zfs destroy ${_destpool}/root/s/$fs@$uuid
+	zfs destroy ${_destpool}/root/s/$fs@$_snapshot
     done
 
     if [ $_jailtype != "sink" ]; then
@@ -173,9 +176,10 @@ __create_superjail () {
 	__set_jail_prop super_name=$super ${uuid}
 	__set_jail_prop super_mroot=$_super_mroot ${uuid}
     else
-	# COPY FS when SINKing...
+	# TODO LIST ALL SUB-POOLS USING zfs INSTEAD OF USING THIS HARDCODED sfs_create_list..
+	# COPY SKEL SUB-POOL(s)
 	for fs in $sfs_create_list ; do
-            zfs send ${_skel_pool}/$fs@$uuid |
+            zfs send ${_skel_pool}/$fs@$_snapshot |
 		zfs recv ${_destpool}/root/s/$fs
 	done
 
@@ -184,7 +188,7 @@ __create_superjail () {
 	__set_sink_prop super_mroot=$_super_mroot ${uuid}
     fi
     
-    zfs destroy -r ${_skel_pool}@$uuid	
+    zfs destroy -r ${_skel_pool}@$_snapshot
 }
 
 

@@ -16,7 +16,7 @@ __sink () {
 
     uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $_jpool)
     type=$(zfs get -H -o value org.freebsd.iocage:type $_jpool)
-#    Zfs set jailed=off ${_jpool}/data
+#    zfs set jailed=off ${_jpool}/data
     if [ $type == "superjail" ]; then
 	local _super_name=$(zfs get -H -o value org.freebsd.iocage:super_name $_jpool)
 	local _super_mroot=$(zfs get -H -o value org.freebsd.iocage:super_mroot $_jpool)
