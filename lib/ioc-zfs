@@ -209,7 +209,6 @@ __clone_iocage_zfs_properties () {
 	    local _name="$(echo $prop | awk 'BEGIN { FS = "\t" } ; { print $1 }')"
 	    local _prop="$(echo $prop | awk 'BEGIN { FS = "\t" } ; { print $2 }')"
 	    local _zfs_set_args="$_name=\"$_prop\""
-            echo $_zfs_set_cmd
  	    zfs set $_zfs_set_args $_dst_pool
 	done
 	IFS=$_ifs
