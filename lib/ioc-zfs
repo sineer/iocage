@@ -203,6 +203,7 @@ __clone_iocage_zfs_properties () {
 	echo "NO IOCAGE PROP FOUND FOR SOURCE ZFS POOL: $_src_pool"
     else
 	# TODO: ERR...
+	local _ifs =$IFS
 	IFS=$'\n'
 	for prop in $_src_props; do
 	    local _name="$(echo $prop | awk 'BEGIN { FS = "\t" } ; { print $1 }')"
@@ -211,6 +212,7 @@ __clone_iocage_zfs_properties () {
             echo $_zfs_set_cmd
  	    zfs set $_zfs_set_args $_dst_pool
 	done
+	IFS=$_ifs
     fi
 }
 
