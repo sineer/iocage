@@ -177,9 +177,10 @@ __create_superjail () {
 	__set_jail_prop super_mroot=$_super_mroot ${uuid}
     else
 	local _skel_sub_pools=$(zfs list -d1 -rH -o name ${_skel_pool} | awk 'NR > 1 { print }')	
-	for fs in $_skel_sub_pools; do
-            zfs send ${_skel_pool}/$fs@$_snapshot |
-		zfs recv ${_destpool}/root/s/$fs
+	for pool in $_skel_sub_pools; do
+	    local _fs="$(echo $pool | awk 'BEGIN{FS="/"}{print $NF}')"
+            zfs send ${_skel_pool}/$_fs@$_snapshot |
+		zfs recv ${_destpool}/root/s/$_fs
 	done
 
 	__set_sink_prop type="sink" ${uuid}
