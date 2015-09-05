@@ -85,6 +85,8 @@ __find_sink () {
         for s in $sinks ; do
             echo $s
         done
+    elif [ "${name}" == "default" ] ; then
+        exit 1
     else
         for s in $sinks ; do
             found="$(echo $s | grep -iE "^${pool}${iocroot}/sinks/$name"|wc -l)"
