@@ -16,7 +16,6 @@ __sink () {
 
     uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $_jpool)
     type=$(zfs get -H -o value org.freebsd.iocage:type $_jpool)
-#    zfs set jailed=off ${_jpool}/data
     if [ $type == "superjail" ]; then
 	local _super_name=$(zfs get -H -o value org.freebsd.iocage:super_name $_jpool)
 	local _super_mroot=$(zfs get -H -o value org.freebsd.iocage:super_mroot $_jpool)
@@ -29,10 +28,10 @@ __sink () {
 	local _spool="$(echo $_jpool | sed s#jails#sinks#g)"
 	__clone_iocage_zfs_properties $_jpool $_spool
 	__set_sink_prop type=sink ${uuid}
+#	__set_sink_prop sink_origin=$_jpool ${uuid}
     fi
     # TODO: SUPPORT OTHER TYPE OF JAILs...
     
-    # TODO: ZFS SNAPSHOT ?
     exit 0
 }
 
