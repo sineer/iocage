@@ -145,12 +145,13 @@ __create_superjail () {
     echo "CREATING SUPERJAIL UUID: $uuid BASED ON SUPER: $_supername USING MROOT: $_super_mroot"
     eval "zfs create -p ${_zfsconfig} ${_destpool}"
 
-    zfs snapshot ${_super_mroot}@$_supername
+    zfs snapshot ${_super_mroot}/mroot@$_supername
     zfs clone \
 	${_super_mroot}/mroot@$_supername \
 	${_destpool}/root
 #    zfs snapshot ${_destpool}/root@$_snapshot
     zfs set readonly=on ${_destpool}/root
+    zfs destroy ${_super_mroot}/mroot@$_supername
 
     local _snapshot="$(date "+%F-%T")"
     
