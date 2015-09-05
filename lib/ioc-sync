@@ -11,7 +11,7 @@ __pull () {
     # TODO: use zfs properties to save ssh_host and ssh_port options
     #       and make 2nd and 3rd arg optional.
 
-    local _sink=__find_sink $_uuid
+    local _sink="$(__find_sink $_uuid)"
 
     if [ -z $_sink ]; then
 	echo "SINK NOT FOUND"
@@ -20,8 +20,8 @@ __pull () {
 
     echo "SINK: $_sink"
     
-    local _snapshots="$(zfs list -rH -d0 -o name -t snapshot $_sink)"
-    echo "$s_snapshots"
+    local _snapshots="$(zfs list -t snapshot | grep -E "^${pool}${iocroot}/sinks/[a-zA-Z0-9]{8,}*-*.[a-zA-Z0-9]{4,}@")"
+    echo "$_snapshots"
 }
 
 
