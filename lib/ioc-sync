@@ -37,13 +37,42 @@ __pull () {
 #    local _sinksnap=$(echo "$_sink_snapshots" | tail -n 1)
 
     zfs snapshot -r $_jail/root/s@$_snapshot
-    zfs send -RI $_jailsnap $_jail/root/s@_snapshot | zfs recv -vF $_sink/root/s
+    zfs send -RI $_jailsnap $_jail/root/s@$_snapshot | zfs recv -vF $_sink/root/s
 }
 
 
 __push () {
+    local _local_pool _remote_pool _local_snapshot _remote_snapshot \
+	  _uuid _ssh_host _ssh_port
 
-    # TODO ...
+    _uuid="$1"
+    _ssh_host="$2"
+    _ssh_port="$3"
+
+    # TODO: use zfs properties to save ssh_host and ssh_port options
+    #       and make 2nd and 3rd arg optional.
+
+    local _jail="$(__find_jail $_uuid)"
+    local _sink="$(__find_sink $_uuid)"
+
+    if [ -z $_jail ]; then
+	echo "JAIL NOT FOUND"
+	exit 1
+    fi
+    if [ -z $_sink ]; then
+	echo "SINK NOT FOUND"
+	exit 1
+    fi
+    
+    uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $_jail)
+    local _snapshot="$(date "+%F-%T")"
+    local _zfs_snapshots="$(zfs list -H -t snapshot -o name)"
+
+    local _sink_snapshots="$(echo "$_zfs_snapshots" | grep -E "^${pool}${iocroot}/sinks/$uuid/root/s@")"
+    local _sinksnap=$(echo "$_sink_snapshots" | tail -n 1)
+
+    zfs snapshot -r $_sink/root/s@$_snapshot
+    zfs send -RI $_sinksnap $_sink/root/s@$_snapshot | zfs recv -vF $_jail/root/s
 }
 
 
