@@ -157,6 +157,7 @@ __create_superjail () {
     zfs snapshot -r ${_skel_pool}@$_snapshot
     zfs send ${_skel_pool}@$_snapshot |
         zfs recv ${_destpool}/root/s
+    zfs destroy ${_destpool}/root/s@$_snapshot
     zfs set readonly=off ${_destpool}/root/s
     
     if [ $_jailtype != "sink" ]; then
@@ -170,6 +171,8 @@ __create_superjail () {
 	for fs in $sfs_create_list ; do
             zfs create ${_destpool}/root/s/$fs
 	done
+
+	zfs destroy -r ${_skel_pool}@$_snapshot
 
 	__set_jail_prop type=$_jailtype ${uuid}
 	__set_jail_prop super_name=$super ${uuid}
