@@ -208,9 +208,9 @@ __clone_iocage_zfs_properties () {
 	for prop in $_src_props; do
 	    local _name="$(echo $prop | awk 'BEGIN { FS = "\t" } ; { print $1 }')"
 	    local _prop="$(echo $prop | awk 'BEGIN { FS = "\t" } ; { print $2 }')"
-	    echo $_name
-	    echo $_prop
- 	    zfs set $_name=$_prop $_dst_pool
+	    local _zfs_set_cmd="zfs set $_name=\"$_prop\" $_dst_pool"
+            echo $_zfs_set_cmd
+ 	    $($_zfs_set_cmd)
 	done
     fi
 }
