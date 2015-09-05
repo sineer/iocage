@@ -37,9 +37,15 @@ __pull () {
 #    local _sinksnap=$(echo "$_sink_snapshots" | tail -n 1)
 
     zfs snapshot -r $_jail/root/s@$_snapshot
-    local _res=$(zfs send -RI $_jailsnap $_jail/root/s@$_snapshot | zfs recv -vF $_sink/root/s)
+    local _dst="${_sink}/root/s"
+    local _res=$(zfs list -H -o name $_dst | wc -l)
+    if [ ! $_res -eq 1 ]; then
+	echo "SINK SKEL POOL: $_dst NOT FOUND!"
+	exit 1
+    fi
+    _res=$(zfs send -RI $_jailsnap $_jail/root/s@$_snapshot | zfs recv -vF $_dst)
     if [ ! $_res -eq 0 ]; then
-	echo "PULL FAILED."
+	echo "PULL FAILED!"
 	exit $_res
     fi
     $(__set_sink_prop last_pull=$_snapshot)

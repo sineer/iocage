@@ -136,7 +136,7 @@ __list_jails () {
         exit 0
     fi
 
-    if [ ! -z ${switch} ] && [ $switch == "-r" ] ; then
+    if [ ! -z ${switch} ] && [ $switch == "-s" ] ; then
         echo "SINK(s):"
         __list_sinks
         exit 0

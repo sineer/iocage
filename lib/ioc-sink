@@ -124,7 +124,7 @@ __list_sinks () {
         exit 0
     fi
     
-    printf "%-13s %s %-19s %-19s\n" "UUID" "TAG" "LAST PULL" "LAST PUSH"
+    printf "%-13s %-19s %-19s %s\n" "UUID" "LAST PULL" "LAST PUSH" "TAG"
     for sink in $sinks ; do
         local _uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $sink)
         local _tag=$(zfs get -H -o value org.freebsd.iocage:tag $sink)
@@ -135,7 +135,7 @@ __list_sinks () {
         local _template=$(zfs get -H -o value org.freebsd.iocage:template $sink)
 
 	# TODO: DISK USAGE, ORIGIN?, ...
-	printf "%-+.13s %s %-19s %-19s\n" "$_uuid" "$_tag" "$_lastpull" "$_lastpush"
+	printf "%-+.13s %-19s %-19s %s\n" "$_uuid" "$_lastpull" "$_lastpush" "$_tag"
     done
 }
 

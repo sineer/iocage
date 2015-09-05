@@ -151,14 +151,12 @@ __create_superjail () {
 	${_destpool}/root
 #    zfs snapshot ${_destpool}/root@$_snapshot
     zfs set readonly=on ${_destpool}/root
-    zfs destroy ${_super_mroot}/mroot@$_supername
 
     local _snapshot="$(date "+%F-%T")"
     
     zfs snapshot -r ${_skel_pool}@$_snapshot
     zfs send ${_skel_pool}@$_snapshot |
         zfs recv ${_destpool}/root/s
-    zfs destroy ${_destpool}/root/s@$_snapshot
     zfs set readonly=off ${_destpool}/root/s
     
     if [ $_jailtype != "sink" ]; then
