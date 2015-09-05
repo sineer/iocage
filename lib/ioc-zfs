@@ -150,7 +150,6 @@ __create_superjail () {
 	${_super_mroot}/mroot@$_supername \
 	${_destpool}/root
 #    zfs snapshot ${_destpool}/root@$_snapshot
-#    zfs destroy ${_super_mroot}@$_snapshot
     zfs set readonly=on ${_destpool}/root
 
     local _snapshot="$(date "+%F-%T")"
@@ -186,9 +185,8 @@ __create_superjail () {
 	__set_sink_prop type="sink" ${uuid}
 	__set_sink_prop super_name=$super ${uuid}
 	__set_sink_prop super_mroot=$_super_mroot ${uuid}
-    fi
-    
-    zfs destroy -r ${_skel_pool}@$_snapshot
+    fi    
+#    zfs destroy -r ${_skel_pool}@$_snapshot
 }
 
 

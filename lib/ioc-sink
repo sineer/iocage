@@ -96,7 +96,7 @@ __find_sink () {
 
             if [ "$found" -eq 1 ] ; then
                 echo $sink >> $slist
-            elseif [ $tag == $name ] ; then
+            elif [ $tag == $name ] ; then
                 echo $sink >> $slist
             fi
         done
