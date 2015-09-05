@@ -25,7 +25,10 @@ __sink () {
 	super=$_super_name
 	__create_superjail $_super_name $_skel_path "sink"
 
-	__clone_iocage_zfs_properties
+	# TODO DESTINATION PATH SHOULD BE PASSED TO create_superjail..
+	local _spool="$(echo $_jpool | sed s#jails#sinks#g)"
+	__clone_iocage_zfs_properties $_jpool $_spool
+	__set_sink_prop type="sink" ${uuid}
     fi
     # TODO: SUPPORT OTHER TYPE OF JAILs...
     

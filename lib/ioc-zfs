@@ -194,15 +194,19 @@ __clone_iocage_zfs_properties () {
 
     #TODO: Validate src/dst pools exists...
     
-    local _src_props="$(zfs get -Hp -o property,value all $_src_pool | grep org.freebsd.iocage)"
-    local _props_cnt=$(echo $_src_props | wc -l)
+    local _src_props="$(zfs get -H -o property,value all $_src_pool | grep org.freebsd.iocage)"
+    local _props_cnt=$(echo "$_src_props" | wc -l)
     if [ $_props_cnt -eq 0 ]; then
 	echo "NO IOCAGE PROP FOUND FOR SOURCE ZFS POOL: $_src_pool"
     else
-	for prop in $props ; do
-	    local _name="$(echo $prop | awk 'BEGIN { FS = "\t" } ; { print "$1" }')"
-	    local _prop="$(echo $prop | awk 'BEGIN { FS = "\t" } ; { print "$2" }')"
- 	    zfs set $_name=${_prop} $_dst_pool
+	# TODO: ERR...
+	IFS=$'\n'
+	for prop in $_src_props; do
+	    local _name="$(echo $prop | awk 'BEGIN { FS = "\t" } ; { print $1 }')"
+	    local _prop="$(echo $prop | awk 'BEGIN { FS = "\t" } ; { print $2 }')"
+	    echo $_name
+	    echo $_prop
+ 	    zfs set $_name=$_prop $_dst_pool
 	done
     fi
 }
