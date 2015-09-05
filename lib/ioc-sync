@@ -23,6 +23,7 @@ __pull () {
 	exit 1
     fi
     
+    uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid $jail)
     local _snapshot="$(date "+%F-%T")"
     local _zfs_snapshots="$(zfs list -H -t snapshot -o name)"
 
