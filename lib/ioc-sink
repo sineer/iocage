@@ -82,20 +82,20 @@ __find_sink () {
                 "^${pool}${iocroot}/sinks/[a-zA-Z0-9]{8,}*-*.[a-zA-Z0-9]{4,}$")"
 
     if [ "${name}" == "ALL" ] ; then
-        for sink in $sinks ; do
-            echo $sink
+        for s in $sinks ; do
+            echo $s
         done
     else
-        for sink in $sinks ; do
-            found="$(echo $sink |grep -iE "^${pool}${iocroot}/sinks/$name"|wc -l)"
-            local tag="$(zfs get -H -o value org.freebsd.iocage:tag $sink)"
+        for s in $sinks ; do
+            found="$(echo $s | grep -iE "^${pool}${iocroot}/sinks/$name"|wc -l)"
+            local tag="$(zfs get -H -o value org.freebsd.iocage:tag $s)"
 
             if [ "$found" -eq 1 ] ; then
-                echo $sink >> $slist
+                echo $s >> $slist
             fi
 
             if [ $tag == $name ] ; then
-                echo $sink >> $slist
+                echo $s >> $slist
             fi
         done
 
