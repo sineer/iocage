@@ -24,12 +24,10 @@ __sink () {
 
 	super=$_super_name
 	__create_superjail $_super_name $_skel_path "sink"
+
 	__clone_iocage_zfs_properties
-	__set_sink_prop type="sink" ${uuid}
     fi
     # TODO: SUPPORT OTHER TYPE OF JAILs...
-
-    __set_jail_prop sink_origin=$_jail_uuid ${uuid} 
     
     # TODO: ZFS SNAPSHOT ?
     exit 0
@@ -84,34 +82,32 @@ __find_sink () {
         for sink in $sinks ; do
             echo $sink
         done
-    elif [ "${name}" == "default" ] ; then
-        echo "${pool}${iocroot}/.defaults"
     else
-        for jail in $jails ; do
-            found="$(echo $jail |grep -iE "^${pool}${iocroot}/jails/$name"|wc -l)"
-            local tag="$(zfs get -H -o value org.freebsd.iocage:tag $jail)"
+        for sink in $sinks ; do
+            found="$(echo $sink |grep -iE "^${pool}${iocroot}/sinks/$name"|wc -l)"
+            local tag="$(zfs get -H -o value org.freebsd.iocage:tag $sink)"
 
             if [ "$found" -eq 1 ] ; then
-                echo $jail >> $jlist
+                echo $sink >> $slist
             fi
 
             if [ $tag == $name ] ; then
-                echo $jail >> $jlist
+                echo $sink >> $slist
             fi
         done
 
-        if [ ! -e $jlist ] ; then
+        if [ ! -e $slist ] ; then
             exit 0
         fi
 
-        if [ "$(cat $jlist|wc -l)" -eq "1" ] ; then
-            cat $jlist
-        elif [ "$(cat $jlist|wc -l)" -gt "1" ] ; then
+        if [ "$(cat $slist|wc -l)" -eq "1" ] ; then
+            cat $slist
+        elif [ "$(cat $slist|wc -l)" -gt "1" ] ; then
             echo "multiple"
         fi
     fi
 
-    rm  -f $jlist
+    rm  -f $slist
 }
 
 __list_sinks () {

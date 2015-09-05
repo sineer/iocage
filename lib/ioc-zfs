@@ -129,6 +129,9 @@ __create_superjail () {
     else
 	_skel_pool=$_superskel
     fi
+    if [ -z $_jailtype ]; then
+	_jailtype="superjail"
+    fi
     if [ $(zfs list -d0 -rH -o name ${_skel_pool} | wc -l) -ne "1" ]; then
 	echo "Invalid skel pool: $_skel_pool"
 	exit 1
@@ -166,7 +169,7 @@ __create_superjail () {
 	done
 	zfs set readonly=on ${_destpool}/root
 
-	__set_jail_prop type="superjail ${uuid}
+	__set_jail_prop type=$_jailtype ${uuid}
 	__set_jail_prop super_name=$super ${uuid}
 	__set_jail_prop super_mroot=$_super_mroot ${uuid}
     else
@@ -176,7 +179,7 @@ __create_superjail () {
 		zfs recv ${_destpool}/root/s/$fs
 	done
 
-	__set_sink_prop type="superjail" ${uuid}
+	__set_sink_prop type="sink" ${uuid}
 	__set_sink_prop super_name=$super ${uuid}
 	__set_sink_prop super_mroot=$_super_mroot ${uuid}
     fi
@@ -191,19 +194,15 @@ __clone_iocage_zfs_properties () {
 
     #TODO: Validate src/dst pools exists...
     
-    local _src_props="$(zfs get -o property,value all $_src_pool | grep org.freebsd.iocage)"
+    local _src_props="$(zfs get -Hp -o property,value all $_src_pool | grep org.freebsd.iocage)"
     local _props_cnt=$(echo $_src_props | wc -l)
-    if [ _props_cnt <= 0 ]; then
+    if [ $_props_cnt -eq 0 ]; then
 	echo "NO IOCAGE PROP FOUND FOR SOURCE ZFS POOL: $_src_pool"
     else
 	for prop in $props ; do
-	    local _name="$(echo $prop |  awk 'BEGIN { FS = "[ \t]*|[ \t]+" } ; { print "$1" }')"
-	    local _prop="$(echo $prop |  awk 'BEGIN { FS = "[ \t]*|[ \t]+" } ; { print "\"$2\"" }')"
-	    if [ -z $_prop ]; then
-		echo "ERROR PARSING ZFS PROPERTY: $_name"
-	    else
- 		zfs set $_name=${_prop} $_dst_pool
-	    fi
+	    local _name="$(echo $prop | awk 'BEGIN { FS = "\t" } ; { print "$1" }')"
+	    local _prop="$(echo $prop | awk 'BEGIN { FS = "\t" } ; { print "$2" }')"
+ 	    zfs set $_name=${_prop} $_dst_pool
 	done
     fi
 }
