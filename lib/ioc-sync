@@ -37,7 +37,12 @@ __pull () {
 #    local _sinksnap=$(echo "$_sink_snapshots" | tail -n 1)
 
     zfs snapshot -r $_jail/root/s@$_snapshot
-    zfs send -RI $_jailsnap $_jail/root/s@$_snapshot | zfs recv -vF $_sink/root/s
+    local _res=$(zfs send -RI $_jailsnap $_jail/root/s@$_snapshot | zfs recv -vF $_sink/root/s)
+    if [ ! $_res -eq 0 ]; then
+	echo "PULL FAILED."
+	exit $_res
+    fi
+    $(__set_sink_prop last_pull=$_snapshot)
 }
 
 
@@ -72,7 +77,12 @@ __push () {
     local _sinksnap=$(echo "$_sink_snapshots" | tail -n 1)
 
     zfs snapshot -r $_sink/root/s@$_snapshot
-    zfs send -RI $_sinksnap $_sink/root/s@$_snapshot | zfs recv -vF $_jail/root/s
+    local _res=$(zfs send -RI $_sinksnap $_sink/root/s@$_snapshot | zfs recv -vF $_jail/root/s)
+    if [ ! $_res -eq 0 ]; then
+	echo "PUSH FAILED."
+	exit $_res
+    fi
+    $(__set_sink_prop last_push=$_snapshot)
 }
 
 
