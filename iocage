@@ -97,6 +97,12 @@ if [ "$1" == "deactivate" ] ; then
     __deactivate "$1"
 fi
 
+# Check if a custom branch is active
+if [ -e "./ioc-branch" ] ; then
+    BRANCH="$(cat ./ioc-branch)"
+    iocroot=$iocroot/branch/$BRANCH/ioc
+fi
+
 # work around zpool activation chicken-egg problem
 # (when activating a pool don't look for an existing one)
 if [ "$1" != "activate" ] ; then
