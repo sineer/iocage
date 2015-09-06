@@ -26,8 +26,8 @@ __sink () {
 
 	# TODO DESTINATION PATH SHOULD BE PASSED TO create_superjail..
 	local _spool="$(echo $_jpool | sed s#jails#sinks#g)"
-	__clone_iocage_zfs_properties $_jpool $_spool
-	__set_sink_prop type=sink ${uuid}
+#	__clone_iocage_zfs_properties $_jpool $_spool
+#	__set_sink_prop type=sink ${uuid}
 #	__set_sink_prop sink_origin=$_jpool ${uuid}
     fi
     # TODO: SUPPORT OTHER TYPE OF JAILs...

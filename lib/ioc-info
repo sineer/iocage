@@ -63,8 +63,6 @@ __find_jail () {
 	if [ ! $(echo "jails" | wc -l) -eq 1 ]; then
 	    echo "multiple"
 	    return
-	else
-	    name=" "
 	fi
     fi
 	
@@ -88,7 +86,7 @@ __find_jail () {
                 echo $jail >> $jlist
             fi
 
-            if [ $tag == $name ] ; then
+            if [ $tag == "${name}" ] ; then
                 echo $jail >> $jlist
             fi
         done

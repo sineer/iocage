@@ -27,27 +27,24 @@ __pull () {
     local _snapshot="$(date "+%F-%T")"
     local _zfs_snapshots="$(zfs list -H -t snapshot -o name)"
 
-#    local _sink_snapshots="$(echo "$_zfs_snapshots" | grep -E "^${pool}${iocroot}/sinks/$uuid/root/s@")"
-#    echo "$_sink_snapshots"
-
-    local _jail_snapshots="$(echo "$_zfs_snapshots" | grep -E "^${pool}${iocroot}/jails/$uuid/root/s@")"
-#    echo "$_jail_snapshots"
-
-    local _jailsnap=$(echo "$_jail_snapshots" | tail -n 1)
-#    local _sinksnap=$(echo "$_sink_snapshots" | tail -n 1)
+    local _skel_snapshots="$(echo "$_zfs_snapshots" | grep -E "^${pool}${iocroot}/jails/$uuid/root/s@")"
+    local _skelsnap=$(echo "$_skel_snapshots" | tail -n 1)
 
     zfs snapshot -r $_jail/root/s@$_snapshot
+    
     local _dst="${_sink}/root/s"
     local _res=$(zfs list -H -o name $_dst | wc -l)
     if [ ! $_res -eq 1 ]; then
 	echo "SINK SKEL POOL: $_dst NOT FOUND!"
 	exit 1
     fi
-    _res=$(zfs send -RI $_jailsnap $_jail/root/s@$_snapshot | zfs recv $_dst)
-    if [ ! $_res -eq 0 ]; then
-	echo "PULL FAILED!"
-	exit $_res
-    fi
+    zfs send -RI $_skelsnap $_jail/root/s@$_snapshot | zfs recv -vF $_dst
+    # if [ ! $? -eq 0 ]; then
+    # 	echo "PULL FAILED!"
+    # 	exit $_res
+    # fi
+
+    __clone_iocage_zfs_properties $_jail $_sink 
     __set_sink_prop last_pull=$_snapshot ${uuid}
 }
 
@@ -83,11 +80,20 @@ __push () {
     local _sinksnap=$(echo "$_sink_snapshots" | tail -n 1)
 
     zfs snapshot -r $_sink/root/s@$_snapshot
-    local _res=$(zfs send -RI $_sinksnap $_sink/root/s@$_snapshot | zfs recv $_jail/root/s)
-    if [ ! $_res -eq 0 ]; then
-	echo "PUSH FAILED."
-	exit $_res
+    
+    local _dst="${_jail}/root/s"
+    local _res=$(zfs list -H -o name $_dst | wc -l)
+    if [ ! $_res -eq 1 ]; then
+	echo "JAIL SKEL POOL: $_dst NOT FOUND!"
+	exit 1
     fi
+    zfs send -RI $_sinksnap $_sink/root/s@$_snapshot | zfs recv -vF $_dst
+    # if [ ! $? -eq 0 ]; then
+    # 	echo "PUSH FAILED."
+    # 	exit $_res
+    # fi
+
+    __clone_iocage_zfs_properties $_sink $_jail
     __set_sink_prop last_push=$_snapshot ${uuid}
 }
 
