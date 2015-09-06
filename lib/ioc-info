@@ -58,6 +58,16 @@ __get_default_prop () {
 
 __find_jail () {
     local name=$1
+
+    if [ -z $name ]; then
+	if [ ! $(echo "jails" | wc -l) -eq 1 ]; then
+	    echo "multiple"
+	    return
+	else
+	    name=" "
+	fi
+    fi
+	
     local jlist="/tmp/iocage-jail-list.$$"
     local jails="$(zfs list -d1 -rH -o name ${pool}${iocroot}/jails \
                  | grep -E \
