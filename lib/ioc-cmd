@@ -94,7 +94,10 @@ __parse_cmd () {
             push)       __push "$2"
                         exit
                 ;;
-            deploy)     __deploy "$2"
+            remote)     __remote "$@"
+                        exit
+		;;
+	    branch)     __branch "$@"
                         exit
                 ;;
             rcboot)     __rc_jails boot

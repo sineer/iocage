@@ -1,0 +1,16 @@
+#!/bin/sh
+
+__branch () {
+    echo "ioc branch $@"
+
+    # Parse Arguments
+    # 
+    # Does branch exist?
+    
+}
+
+__checkout () {
+    # NOTE: "default" or "root" is ROOT branch.
+  
+    # TODO ...
+}
