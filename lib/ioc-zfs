@@ -281,6 +281,7 @@ __create_jail () {
                 _inherit_props="$(__unset_inherited ${uuid})"
             fi
         done
+	zfs create -p ${pool}${iocroot}/jails/${uuid}/_
 
         # Create all the unionfs r/w directories needed
         mkdir  -p ${iocroot}/jails/${uuid}/_/usr/local
@@ -611,6 +612,10 @@ __check_filesystems () {
             fi
         fi
     done
+
+    # TODO: REVIEW / FIX THIS...
+    export jail_datasets="$(zfs list -d3 -rH -o name ${pool}${iocroot} \
+                        | grep -Ev "jails$|base$|download|${pool}${iocroot}$|${pool}${iocroot}$/.defaults|*./root|*./z")"
 }
 
 __check_children () {
