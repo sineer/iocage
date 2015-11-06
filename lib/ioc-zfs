@@ -142,40 +142,10 @@ __reclone_basejail () {
     _jailed_dataset="${pool}${iocroot}/jails/${_fulluuid}/z"
     _jail_tag="$(__get_jail_prop tag ${_fulluuid} ${_dataset})"
     _jail_mount="$(__get_jail_prop mountpoint ${_fulluuid} ${_dataset})"
-#    _hack88="$(__get_jail_prop hack88 ${_fulluuid} ${_dataset})"
     _shortuuid="$(echo ${_fulluuid}|cut -f1 -d\-)"
     _jailed_dataset_check="$(zfs get -H creation ${_jailed_dataset} > \
                            /dev/null 2>&1 ; echo $?)"
     _inherit_props="$(__unset_inherited ${_fulluuid})"
-
-
-    # Check to see if the user has the old style of jailed datasets
-#    if [ "${_jailed_dataset_check}" = "0" ] ; then
-#        zfs set jailed=off "${_jailed_dataset}"
-#        zfs rename -f "${_jailed_dataset}" \
-#                      "${pool}${iocroot}/jails/${_fulluuid}/"
-#        zfs set jailed=on "${pool}${iocroot}/jails/${_fulluuid}/data"
-#    fi
-
-    # Migrate from release to base property
-    if [ "${_jail_base}" = "none" ] ; then
-        _old_jail_release="$(__get_jail_prop release ${_fulluuid} ${_dataset})"
-        __set_jail_prop base="${_old_jail_release}" "${_fulluuid}"
-        unset _jail_base
-        _jail_base="$(__get_jail_prop base ${_fulluuid} ${_dataset})"
-    fi
-
-    # If the length is over this, it's an old-style basejail
-#    if [ "${_old_base_check}" -gt "15" ] ; then
-#        __migrate_basejail "${_fulluuid}" "${_jail_base}"
-#    fi
-
-    # Look for hack88, if it exists, pass the short uuid
-#    if [ "${_hack88}" = "1" ] ; then
-#        __umount_basejail "${_shortuuid}"
-#    else
-#        __umount_basejail "${_fulluuid}"
-#    fi
 
     zfs destroy -f ${pool}${iocroot}/jails/${_fulluuid}/root > /dev/null 2>&1
 
@@ -216,13 +186,6 @@ __reclone_basejail () {
     if [ ! -e "${iocroot}/base/${_jail_base}/root/usr/ports" ] ; then
         mkdir ${iocroot}/base/${_jail_base}/root/usr/ports
     fi
-    
-#    # Look for hack88, if it exists, pass the short uuid
-#    if [ "${_hack88}" = "1" ] ; then
-#        __mount_basejail "${_shortuuid}"
-#    else
-#        __mount_basejail "${_fulluuid}"
-#    fi
 }
 
 # This creates jails----------------------------------------------------
@@ -260,15 +223,6 @@ __create_jail () {
         printf "${_releases}\n" >&2
         exit 1
     fi
-
-    # Check to see if the user has the old style of RELEASE datasets
-#    if [ "${_release_dataset_check}" = "0" ] ; then
-#        zfs rename -f "${pool}${iocroot}/base" \
-#                      "${pool}${iocroot}/base_old"
-#        zfs inherit -r mountpoint "${_release_dataset}"
-#        zfs rename -f "${_release_dataset}" \
-#                      "${pool}${iocroot}/base"
-#    fi
 
     # Check to see if the old ${pool}${iocroot}/base datasets are needed any longer
     if [ "${_base_inuse}" = "1" ] ; then
@@ -682,21 +636,22 @@ __check_children () {
 # Accepts one argument. Which is used as the UUID for the mount operations
 __mount_basejail () {
     local _fulluuid="$1"
+    local _mountopts="-t unionfs -o noatime,copymode=transparent"
 
     # Mount the overlays needed for basejails
-    mount -t unionfs -o noatime,copymode=transparent \
+    mount ${_mountopts} \
         ${iocroot}/jails/${_fulluuid}/_/etc \
         ${iocroot}/jails/${_fulluuid}/root/etc
-    mount -t unionfs -o noatime,copymode=transparent \
+    mount ${_mountopts} \
         ${iocroot}/jails/${_fulluuid}/_/root \
         ${iocroot}/jails/${_fulluuid}/root/root
-    mount -t unionfs -o noatime,copymode=transparent \
+    mount ${_mountopts} \
         ${iocroot}/jails/${_fulluuid}/_/usr/home \
         ${iocroot}/jails/${_fulluuid}/root/usr/home
-    mount -t unionfs -o noatime,copymode=transparent \
+    mount ${_mountopts} \
         ${iocroot}/jails/${_fulluuid}/_/usr/local \
         ${iocroot}/jails/${_fulluuid}/root/usr/local
-    mount -t unionfs -o noatime,copymode=transparent \
+    mount ${_mountopts} \
         ${iocroot}/jails/${_fulluuid}/_/var \
         ${iocroot}/jails/${_fulluuid}/root/var
 
@@ -705,10 +660,8 @@ __mount_basejail () {
         mkdir "${iocroot}/jails/${_fulluuid}/_/usr/ports"
     fi
 
-    # Mount the rest
-    mount -t unionfs -o noatime,copymode=transparent \
-        ${iocroot}/jails/${_fulluuid}/_/usr/ports \
-        ${iocroot}/jails/${_fulluuid}/root/usr/ports
+    # Mount /usr/ports using nullfs (READ-ONLY) 
+    mount -t nullfs -o ro /usr/ports ${iocroot}/jails/${_fulluuid}/root/usr/ports
 
     # Mount tmpfs
     mount -t tmpfs tmpfs ${iocroot}/jails/${_fulluuid}/root/tmp
