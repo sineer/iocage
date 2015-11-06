@@ -66,12 +66,12 @@ __set_jail_prop () {
     fi
 
     if [ "${_pname}" = "jail_zfs" ] ; then
-        _jailed_dataset="${_dataset}/data"
+        _jailed_dataset="${_dataset}/z"
         _jailed_dataset_check="$(zfs get -H creation ${_jailed_dataset} > \
                               /dev/null 2>&1 ; echo $?)"
         if [ "${_jailed_dataset_check}" != "0" ] ; then
             zfs create -o compression=lz4 -o mountpoint=none -o jailed=on \
-                ${_dataset}/data
+                ${_dataset}/z
         fi
     # Do they want bpf exposed?
     elif [ "${_pname}" = "bpf" ] ; then

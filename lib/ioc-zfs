@@ -127,80 +127,10 @@ __clean_snapshots () {
     done
 }
 
-# Accepts two arguments. Which is used as the UUID for the umount operations
-# and what release to use.
-__migrate_basejail () {
-    local _bfs_list _fulluuid _base _release_dataset _release_dataset_check
-
-    _fulluuid="$1"
-    _base="$2"
-    _bfs_list="bin
-               boot
-               lib
-               libexec
-               rescue
-               sbin
-               usr"
-    _release_dataset="${pool}${iocroot}/releases"
-    _release_dataset_check="$(zfs get -H creation ${_release_dataset} > \
-                           /dev/null 2>&1 ; echo $?)"
-
-    # Check to see if the user has the old style of RELEASE datasets
-    if [ "${_release_dataset_check}" = "0" ] ; then
-        zfs rename -f "${pool}${iocroot}/base" \
-                      "${pool}${iocroot}/base_old"
-        zfs inherit -r mountpoint "${_release_dataset}"
-        zfs rename -f "${_release_dataset}" \
-                      "${pool}${iocroot}/base"
-    fi
-
-    # Set up all the new stuff
-    mkdir ${iocroot}/jails/${_fulluuid}/_
-    mkdir ${iocroot}/jails/${_fulluuid}/_/usr
-
-    # Create these dirs for old RELEASEs fetched for the basejail
-    # Silencing in case they exist, nobody cares.
-    mkdir ${iocroot}/base/${_base}/root/usr/home  > /dev/null 2>&1
-    cd ${iocroot}/base/${_base}/root && ln -s usr/home home 2>&1
-    mkdir ${iocroot}/base/${_base}/root/usr/ports > /dev/null 2>&1
-
-    # If the user has a /usr/local, move it for migration
-    if [ -e "${iocroot}/jails/${_fulluuid}/root/usr/local" ] ; then
-        mv    ${iocroot}/jails/${_fulluuid}/root/usr/local \
-              ${iocroot}/jails/${_fulluuid}/_/usr/local
-    else
-        mkdir ${iocroot}/jails/${_fulluuid}/_/usr/local
-    fi
-
-    # If the user had a ports tree, move it for migration
-    if [ -e "${iocroot}/jails/${_fulluuid}/root/usr/ports" ] ; then
-        mv    ${iocroot}/jails/${_fulluuid}/root/usr/ports \
-              ${iocroot}/jails/${_fulluuid}/_/usr/ports
-    else
-        mkdir ${iocroot}/jails/${_fulluuid}/_/usr/ports
-    fi
-
-    # Move all the r/w required mountpoints for migration
-    mv    ${iocroot}/jails/${_fulluuid}/root/etc \
-          ${iocroot}/jails/${_fulluuid}/_/etc
-    mv    ${iocroot}/jails/${_fulluuid}/root/root \
-          ${iocroot}/jails/${_fulluuid}/_/root
-    mv    ${iocroot}/jails/${_fulluuid}/root/usr/home \
-          ${iocroot}/jails/${_fulluuid}/_/usr/home
-    mv    ${iocroot}/jails/${_fulluuid}/root/var \
-          ${iocroot}/jails/${_fulluuid}/_/var
-    zfs   umount -f ${pool}${iocroot}/jails/${_fulluuid}/root
-
-    # Destroy all the old datasets now
-    for _fs in ${_bfs_list} ; do
-        zfs destroy -rf ${pool}${iocroot}/jails/${_fulluuid}/root/${_fs}
-    done
-}
-
 __reclone_basejail () {
     local _fulluuid _fs_list _dataset _jail_base _jailed_dataset \
           _jailed_dataset_check _jail_datasets _base_inuse _origin _tag _uuid \
-          _jail_mount _hack88 _shortuuid _inherit_props
+          _jail_mount _shortuuid _inherit_props
 
     _fulluuid="$1"
     _dataset="$2"
@@ -209,10 +139,10 @@ __reclone_basejail () {
              grep root@${_fulluuid})"
     _old_base_check="$(zfs list -Hr ${pool}${iocroot}/jails/${_fulluuid} | \
                      grep -v data | wc -l)"
-    _jailed_dataset="${pool}${iocroot}/jails/${_fulluuid}/root/data"
+    _jailed_dataset="${pool}${iocroot}/jails/${_fulluuid}/z"
     _jail_tag="$(__get_jail_prop tag ${_fulluuid} ${_dataset})"
     _jail_mount="$(__get_jail_prop mountpoint ${_fulluuid} ${_dataset})"
-    _hack88="$(__get_jail_prop hack88 ${_fulluuid} ${_dataset})"
+#    _hack88="$(__get_jail_prop hack88 ${_fulluuid} ${_dataset})"
     _shortuuid="$(echo ${_fulluuid}|cut -f1 -d\-)"
     _jailed_dataset_check="$(zfs get -H creation ${_jailed_dataset} > \
                            /dev/null 2>&1 ; echo $?)"
@@ -220,12 +150,12 @@ __reclone_basejail () {
 
 
     # Check to see if the user has the old style of jailed datasets
-    if [ "${_jailed_dataset_check}" = "0" ] ; then
-        zfs set jailed=off "${_jailed_dataset}"
-        zfs rename -f "${_jailed_dataset}" \
-                      "${pool}${iocroot}/jails/${_fulluuid}/data"
-        zfs set jailed=on "${pool}${iocroot}/jails/${_fulluuid}/data"
-    fi
+#    if [ "${_jailed_dataset_check}" = "0" ] ; then
+#        zfs set jailed=off "${_jailed_dataset}"
+#        zfs rename -f "${_jailed_dataset}" \
+#                      "${pool}${iocroot}/jails/${_fulluuid}/"
+#        zfs set jailed=on "${pool}${iocroot}/jails/${_fulluuid}/data"
+#    fi
 
     # Migrate from release to base property
     if [ "${_jail_base}" = "none" ] ; then
@@ -236,16 +166,16 @@ __reclone_basejail () {
     fi
 
     # If the length is over this, it's an old-style basejail
-    if [ "${_old_base_check}" -gt "15" ] ; then
-        __migrate_basejail "${_fulluuid}" "${_jail_base}"
-    fi
+#    if [ "${_old_base_check}" -gt "15" ] ; then
+#        __migrate_basejail "${_fulluuid}" "${_jail_base}"
+#    fi
 
     # Look for hack88, if it exists, pass the short uuid
-    if [ "${_hack88}" = "1" ] ; then
-        __umount_basejail "${_shortuuid}"
-    else
-        __umount_basejail "${_fulluuid}"
-    fi
+#    if [ "${_hack88}" = "1" ] ; then
+#        __umount_basejail "${_shortuuid}"
+#    else
+#        __umount_basejail "${_fulluuid}"
+#    fi
 
     zfs destroy -f ${pool}${iocroot}/jails/${_fulluuid}/root > /dev/null 2>&1
 
@@ -282,12 +212,17 @@ __reclone_basejail () {
         cd ${iocroot}/base/${_jail_base}/root && ln -s usr/home home 2>&1
     fi
 
-    # Look for hack88, if it exists, pass the short uuid
-    if [ "${_hack88}" = "1" ] ; then
-        __mount_basejail "${_shortuuid}"
-    else
-        __mount_basejail "${_fulluuid}"
+    # Make sure the usr/ports directory exists in the RELEASE
+    if [ ! -e "${iocroot}/base/${_jail_base}/root/usr/ports" ] ; then
+        mkdir ${iocroot}/base/${_jail_base}/root/usr/ports
     fi
+    
+#    # Look for hack88, if it exists, pass the short uuid
+#    if [ "${_hack88}" = "1" ] ; then
+#        __mount_basejail "${_shortuuid}"
+#    else
+#        __mount_basejail "${_fulluuid}"
+#    fi
 }
 
 # This creates jails----------------------------------------------------
@@ -327,13 +262,13 @@ __create_jail () {
     fi
 
     # Check to see if the user has the old style of RELEASE datasets
-    if [ "${_release_dataset_check}" = "0" ] ; then
-        zfs rename -f "${pool}${iocroot}/base" \
-                      "${pool}${iocroot}/base_old"
-        zfs inherit -r mountpoint "${_release_dataset}"
-        zfs rename -f "${_release_dataset}" \
-                      "${pool}${iocroot}/base"
-    fi
+#    if [ "${_release_dataset_check}" = "0" ] ; then
+#        zfs rename -f "${pool}${iocroot}/base" \
+#                      "${pool}${iocroot}/base_old"
+#        zfs inherit -r mountpoint "${_release_dataset}"
+#        zfs rename -f "${_release_dataset}" \
+#                      "${pool}${iocroot}/base"
+#    fi
 
     # Check to see if the old ${pool}${iocroot}/base datasets are needed any longer
     if [ "${_base_inuse}" = "1" ] ; then
@@ -374,6 +309,7 @@ __create_jail () {
         _zfsconfig="$(__configure_jail generate)"
         eval "zfs create -p ${_zfsconfig} \"${pool}${iocroot}/jails/${uuid}\""
         zfs create -p ${pool}${iocroot}/jails/${uuid}/root
+	zfs create -p ${pool}${iocroot}/jails/${uuid}/_
         _configured="1"
     else
         # Clones the root dataset from the RELEASE and makes sure to configure
@@ -460,7 +396,7 @@ __create_jail () {
     done
 
     # configure the jail mountpoint
-    __hack88_mount ${uuid} ${pool}${iocroot}/jails/${uuid}
+#    __hack88_mount ${uuid} ${pool}${iocroot}/jails/${uuid}
 
     # Install extra packages
     # this requires working resolv.conf in jail
@@ -585,7 +521,7 @@ __clone_jail () {
     fi
 
     # configure the jail mountpoint
-    __hack88_mount ${uuid} ${pool}${iocroot}/jails/${uuid}
+#    __hack88_mount ${uuid} ${pool}${iocroot}/jails/${uuid}
     __set_jail_prop type=clonejail ${uuid} ${pool}${iocroot}/jails/${uuid}
     echo "  Successfully created: ${uuid} (${tag})"
 

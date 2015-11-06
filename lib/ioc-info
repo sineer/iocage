@@ -92,7 +92,7 @@ __find_jail () {
 __list_jails () {
     local _jails _switch _all_jids _ioc_jids _non_ioc_jids _releases \
           _temp_loop_var _state
-    _jails=$(__find_jail ALL | grep -Ev "${pool}${iocroot}/.defaults|${pool}${iocroot}/base/[0-9].?\>|${pool}${iocroot}/base_old|*./root|*./data")
+    _jails=$(__find_jail ALL | grep -Ev "${pool}${iocroot}/.defaults|${pool}${iocroot}/base/[0-9].?\>|${pool}${iocroot}/base_old|*./root|*./z")
     _switch=$1
     _all_jids=$(jls -N -h jid | grep -v -x jid )
 
