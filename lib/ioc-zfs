@@ -653,47 +653,10 @@ __check_filesystems () {
                 zfs set mountpoint=/${_fs} ${pool}${_fs}
                 if [ ${_fs} == "${iocroot}/.defaults" ] ; then
                     __configure_jail ${pool}${iocroot}/.defaults > /dev/null 2>&1
-#                    if [ $_altroot != "-" ] ; then
-#                        sed -i '' s#.*iocroot.*#iocroot="${_altroot}/iocage"# \
-#                            "${LIB}/ioc-globals"
-#                        export iocroot="${_altroot}/iocage"
-#                    elif [ $_altroot == "-" ] ; then
-#                        sed -i '' s#.*iocroot.*#iocroot="/iocage"# \
-#                            "${LIB}/ioc-globals"
-#                        export iocroot="/iocage"
-#                    fi
                 fi
             fi
         fi
     done
-
-#    if [ ${_missing} -gt 0 ] ; then
-#        zfs mount -a
-#    fi
-
-    export jail_datasets="$(zfs list -d3 -rH -o name ${pool}${iocroot} \
-                          | grep -Ev "jails$|base$|download|${pool}${iocroot}$|${pool}${iocroot}$/.defaults|*./root")"
-
-    # Checks to see if the user changed the altroot and modify ioc-globals
-    # If the user decided to unset their altroot, they need to run again as
-    # root to set it back to the default location
-#    if [ ${_altroot} != "-" -a "$(whoami)" == "root" ] ; then
-#        sed -i '' s#.*iocroot.*#iocroot="${_altroot}/iocage"# \
-#            "${LIB}/ioc-globals"
-#        export iocroot="${_altroot}/iocage"
-#    elif [ ${_altroot} != "-" -a "$(whoami)" != "root" -a ${iocroot} != "${_altroot}/iocage" ] ; then
-#        __error "You changed the altroot of ${pool}"
-#        echo "  Please run as root to fix." >&2
-#        exit 1
-#    elif [ ${_altroot} == "-" -a "$(whoami)" == "root" ] ; then
-#        sed -i '' s#.*iocroot.*#iocroot="/iocage"# \
-#            "${LIB}/ioc-globals"
-#        export iocroot="/iocage"
-#    elif [ ${_altroot} == "-" -a "$(whoami)" != "root" -a ${iocroot} != "/iocage" ] ; then
-#        __error "You changed the altroot of ${pool}"
-#        echo "  Please run as root to fix." >&2
-#        exit 1
-#    fi
 }
 
 __check_children () {
