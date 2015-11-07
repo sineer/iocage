@@ -122,10 +122,12 @@ __set_jail_prop () {
                     tar xf -)
                 # Destroy all the snapshot we don't need and the original
                 # location for the jail.
+                zfs destroy  "${pool}${iocroot}/base/${_base}/root@${_fulluuid}/_-template"
                 zfs destroy  "${pool}${iocroot}/base/${_base}/root@${_fulluuid}-template"
                 zfs destroy  "${pool}${iocroot}/base/${_base}/root@${_fulluuid}"
                 zfs destroy "${pool}${iocroot}/base/${_tag}@template"
                 zfs destroy  "${pool}${iocroot}/base/${_tag}/root@${_fulluuid}-template"
+                zfs destroy  "${pool}${iocroot}/jails/${_fulluuid}/_"
                 zfs destroy  "${pool}${iocroot}/jails/${_fulluuid}"
                 # remove any residual clone snapshots carried over from
                 # the RELEASE datasets
