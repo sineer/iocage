@@ -606,7 +606,7 @@ __check_filesystems () {
 
     # TODO: REVIEW / FIX THIS...
     export jail_datasets="$(zfs list -d3 -rH -o name ${pool}${iocroot} \
-                        | grep -Ev "jails$|base$|download|${pool}${iocroot}$|${pool}${iocroot}$/.defaults|*./root|*./z|*./_")"
+                        | grep -Ev "jails$|base$|download|${pool}${iocroot}$|${pool}${iocroot}/.defaults$|*./root|*./z|*./_")"
 }
 
 __check_children () {
