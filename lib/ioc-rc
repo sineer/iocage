@@ -140,6 +140,7 @@ __start_jail () {
     if [ "${_jail_type}" = "basejail" ] ; then
         # Re-clone required filesystems
         __reclone_basejail $_fulluuid $_dataset
+        __mount_basejail $_fulluuid
     fi
 
     if [ "${_jail_type}" = "clonejail" ] ; then
