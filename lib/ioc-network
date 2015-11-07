@@ -83,8 +83,8 @@ __networking () {
                     awk '{ print $1 }')"
     # Otherwise the list is stale, as it does not include a freshly created
     # jail
-    export jail_datasets="$(zfs list -d3 -rH -o name ${pool}/iocage \
-                          | grep -Ev "jails$|base$|download|${pool}/iocage$|*./root")"
+    export jail_datasets="$(zfs list -d3 -rH -o name ${pool}${iocroot} \
+                          | grep -Ev "jails$|base$|download|${pool}${iocroot}$|*./root")"
 
     # Change the DEFAULT tag to correct iface
     nics=$(echo $nics | sed "s/DEFAULT/$default_iface/g")
@@ -231,8 +231,7 @@ __get_autoip4 () {
     _autostart=$(__get_jail_prop ip4_autostart default)
     _autoend=$(__get_jail_prop ip4_autoend default)
     _autosubnet=$(__get_jail_prop ip4_autosubnet default)
-    _jails=$(__find_jail ALL | \
-           grep -vE "${pool}/iocage/.defaults|${pool}/iocage/base/[0-9].?\>")
+    _jails=$(__find_jail ALL)
 
     # Do some basic sanity checking
     if [ -z "$_autostart" ] ; then

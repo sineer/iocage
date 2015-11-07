@@ -37,7 +37,7 @@ __import_thick () {
             _uuid="$(__create_jail "" -e)"
             tar -xvJf "${_image}" -C "${iocroot}/jails/${_uuid}/root"
             zfs set org.freebsd.iocage:base="${_ibase}" \
-            "${pool}/iocage/jails/${_uuid}"
+            "${pool}${iocroot}/jails/${_uuid}"
         fi
 
     else
@@ -132,13 +132,13 @@ __post_import_tasks () {
     local _name _dataset _jail_base
 
     _name="${1}"
-    _dataset="${pool}/iocage/jails/${_name}"
+    _dataset="${pool}${iocroot}/jails/${_name}"
     _jail_base="$(zfs get -H -o value org.freebsd.iocage:base ${_dataset})"
 
-    zfs snapshot "${pool}/iocage/base/${_jail_base}/root@${_name}"
+    zfs snapshot "${pool}${iocroot}/base/${_jail_base}/root@${_name}"
     zfs clone -o readonly=on \
-        "${pool}/iocage/base/${_jail_base}/root@${_name}" \
-        "${pool}/iocage/jails/${_name}/root"
+        "${pool}${iocroot}/base/${_jail_base}/root@${_name}" \
+        "${pool}${iocroot}/jails/${_name}/root"
 }
 
 __export () {
@@ -176,10 +176,10 @@ __export () {
     done &
 
     trap "kill $!" 2 3
-    zfs snapshot "${pool}/iocage/jails/${_fulluuid}@ioc-export-${_date}"
-    zfs send -p "${pool}/iocage/jails/${_fulluuid}@ioc-export-${_date}" > \
+    zfs snapshot "${pool}${iocroot}/jails/${_fulluuid}@ioc-export-${_date}"
+    zfs send -p "${pool}${iocroot}/jails/${_fulluuid}@ioc-export-${_date}" > \
                 "${_export_name}"
-    zfs destroy "${pool}/iocage/jails/${_fulluuid}@ioc-export-${_date}"
+    zfs destroy "${pool}${iocroot}/jails/${_fulluuid}@ioc-export-${_date}"
     printf "\b%1s\n" "done!" ; kill $! && trap " " 2 3
 }
 
