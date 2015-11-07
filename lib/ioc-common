@@ -111,6 +111,7 @@ __set_jail_prop () {
                     zfs recv "${pool}${iocroot}/base/${_tag}"
                 # No longer need that snapshot
                 zfs destroy "${pool}${iocroot}/jails/${_fulluuid}@template"
+                zfs destroy "${pool}${iocroot}/jails/${_fulluuid}/_@template"
                 # Creating jail's /root in it's new home
                 zfs send -R     "${pool}${iocroot}/base/${_base}/root@${_fulluuid}-template" | \
                     zfs recv "${pool}${iocroot}/base/${_tag}/root"
@@ -125,6 +126,7 @@ __set_jail_prop () {
                 zfs destroy  "${pool}${iocroot}/base/${_base}/root@${_fulluuid}/_-template"
                 zfs destroy  "${pool}${iocroot}/base/${_base}/root@${_fulluuid}-template"
                 zfs destroy  "${pool}${iocroot}/base/${_base}/root@${_fulluuid}"
+		zfs destroy "${pool}${iocroot}/base/${_tag}/_@template"
                 zfs destroy "${pool}${iocroot}/base/${_tag}@template"
                 zfs destroy  "${pool}${iocroot}/base/${_tag}/root@${_fulluuid}-template"
                 zfs destroy  "${pool}${iocroot}/jails/${_fulluuid}/_"
