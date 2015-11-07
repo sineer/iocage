@@ -606,7 +606,7 @@ __check_filesystems () {
 
     # TODO: REVIEW / FIX THIS...
     export jail_datasets="$(zfs list -d3 -rH -o name ${pool}${iocroot} \
-                        | grep -Ev "jails$|base$|download|${pool}${iocroot}$|${pool}${iocroot}$/.defaults|*./root|*./z")"
+                        | grep -Ev "jails$|base$|download|${pool}${iocroot}$|${pool}${iocroot}$/.defaults|*./root|*./z|*./_")"
 }
 
 __check_children () {
@@ -615,8 +615,7 @@ __check_children () {
 
     _fulluuid="$1"
     _dataset="$2"
-    _jail_datasets="$(__find_jail ALL | \
-                    grep -vE "${pool}${iocroot}/.defaults|${pool}${iocroot}/base/[0-9].?\>")"
+    _jail_datasets="$(__find_jail ALL)"
 
     for _fs in $_jail_datasets ; do
         _origin="$(zfs get -H -o value origin $_fs | cut -f1 -d@)"
