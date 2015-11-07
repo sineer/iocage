@@ -69,7 +69,7 @@ __find_jail () {
         __die "${_name} is not a valid command"
     else
         for _jail in ${jail_datasets} ; do
-            _found="$(echo ${_jail} | grep -iE ${_name}$)"
+            _found="$(echo ${_jail} | grep -iE ${_name})"
             _tag="$(zfs get -H -o value org.freebsd.iocage:tag ${_jail})"
 
             if [ "${_tag}" = "${_name}" ] ; then
