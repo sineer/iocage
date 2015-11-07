@@ -84,7 +84,7 @@ __networking () {
     # Otherwise the list is stale, as it does not include a freshly created
     # jail
 #    export jail_datasets="$(zfs list -d3 -rH -o name ${pool}${iocroot} \
-#                          | grep -Ev "jails$|base$|download|${pool}${iocroot}$|*./root")"
+#                          | grep -Ev "jails$|base$|rel|${pool}${iocroot}$|*./root")"
 
     # Change the DEFAULT tag to correct iface
     nics=$(echo $nics | sed "s/DEFAULT/$default_iface/g")

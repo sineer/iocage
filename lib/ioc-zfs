@@ -63,8 +63,8 @@ __clean () {
             if [ "${_answer}" == "Y" -o "${_answer}" == "y" ] ; then
                 __clean_basejail
                 if [ $? -eq 0 ] ; then
-                    __spinner "  INFO: destroying ${pool}${iocroot}/download:  " \
-                              "zfs destroy -rRf ${pool}${iocroot}/download"
+                    __spinner "  INFO: destroying ${pool}${iocroot}/rel:  " \
+                              "zfs destroy -rRf ${pool}${iocroot}/rel"
                     __spinner "  INFO: destroying ${pool}${iocroot}/base:  " \
                               "zfs destroy -rRf ${pool}${iocroot}/base"
                     exit 0
@@ -192,13 +192,13 @@ __create_jail () {
           _pname _prop _isprop _inherit_props
 
     _installed=$(zfs list -rH ${pool}${iocroot}/base | grep ${base})
-    _releases=$(__list_jails -r | grep -v "Downloaded releases:")
+    _releases=$(__list_jails -r | grep -v "Releases:")
     _devfs_string="$(grep -Fxq \
                   "## IOCAGE -- Add DHCP to ruleset 4" /etc/devfs.rules \
                   ; echo $?)"
     _base_inuse="$(zfs get -rH -o value origin ${pool} | \
                  grep ${pool}${iocroot}/base_old > /dev/null 2>&1 ; echo $?)"
-    _release_dataset="${pool}${iocroot}/releases"
+    _release_dataset="${pool}${iocroot}/rel"
     _release_dataset_check="$(zfs get -H creation ${_release_dataset} > \
                            /dev/null 2>&1 ; echo $?)"
     _configured="0"
@@ -577,7 +577,7 @@ __check_filesystems () {
     # dataset.
     _filesystems="${iocroot}
                   ${iocroot}/.defaults
-                  ${iocroot}/download
+                  ${iocroot}/rel
                   ${iocroot}/jails
                   ${iocroot}/base"
 
@@ -606,7 +606,7 @@ __check_filesystems () {
 
     # TODO: REVIEW / FIX THIS...
     export jail_datasets="$(zfs list -d3 -rH -o name ${pool}${iocroot} \
-                        | grep -Ev "jails$|base$|download|${pool}${iocroot}$|${pool}${iocroot}/.defaults$|*./root|*./z|*./_")"
+                        | grep -Ev "jails$|base$|rel|${pool}${iocroot}$|${pool}${iocroot}/.defaults$|*./root|*./z|*./_")"
 }
 
 __check_children () {

@@ -103,8 +103,8 @@ __list_jails () {
 
     # TODO: REVIEW/FIX THIS..
     if [ ! -z "${_switch}" -a "${_switch}" = "-r" ] ; then
-        echo "Downloaded releases:"
-        _releases="$(zfs list -o name -Hr ${pool}${iocroot}/base \
+        echo "Releases:"
+        _releases="$(zfs list -o name -Hr ${pool}${iocroot}/rel \
                    | grep RELEASE$ | cut -d \/ -f 4)"
         for _rel in $(echo ${_releases}) ; do
             printf "%15s\n" "${_rel}"
