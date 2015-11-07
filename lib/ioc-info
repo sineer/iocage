@@ -155,7 +155,7 @@ __list_jails () {
                            "${_uuid}" "${_boot}" "${_state}" "${_tag}" "${_type}"
                 fi
             elif [ "${_switch}" != "-t" ] ; then
-                if [ "${_template}" != "yes" ] ; then
+                if [ "${_template}" = "no" ] ; then
                     printf "%s^%s^%s^%s^%s^%s\n" "${_jid}" \
                            "${_uuid}" "${_boot}" "${_state}" "${_tag}" "${_type}"
                 fi
