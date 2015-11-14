@@ -174,13 +174,13 @@ __reclone_basejail () {
             \"${pool}${iocroot}/jails/${_fulluuid}/root\""
     fi
 
-    # Make sure the usr/home directory exists in the RELEASE
+    # Make sure the usr/home directory exists
     if [ ! -e "${iocroot}/base/${_jail_base}/root/usr/home" ] ; then
         mkdir ${iocroot}/base/${_jail_base}/root/usr/home
         cd ${iocroot}/base/${_jail_base}/root && ln -s usr/home home 2>&1
     fi
 
-    # Make sure the usr/ports directory exists in the RELEASE
+    # Make sure the usr/ports directory exists
     if [ ! -e "${iocroot}/base/${_jail_base}/root/usr/ports" ] ; then
         mkdir ${iocroot}/base/${_jail_base}/root/usr/ports
     fi
@@ -596,7 +596,7 @@ __check_filesystems () {
             else
                 __info "creating ${pool}${_fs}"
                 zfs create -p ${pool}${_fs}
-                zfs set mountpoint=/${_fs} ${pool}${_fs}
+                zfs set mountpoint=${_fs} ${pool}${_fs}
                 if [ ${_fs} == "${iocroot}/.defaults" ] ; then
                     __configure_jail ${pool}${iocroot}/.defaults > /dev/null 2>&1
                 fi
