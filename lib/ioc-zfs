@@ -635,8 +635,9 @@ __mount_basejail () {
     local _jfs=$(zfs list -o name -rH ${pool}${iocroot}/jails | grep "${_fulluuid}$")    
     local _jfss=$(zfs list -o name -rH ${pool}${iocroot}/jails | grep "${_fulluuid}" | grep -Ev '${_fulluuid}$')    
 
-    for _fss in ${_jfs} ; do
-	zfs mount ${_fs}
+    zfs mount ${_jfs} > /dev/null 2>&1
+    for _fs in ${_jfss} ; do
+	zfs mount ${_fs} > /dev/null 2>&1
     done
 
     # Mount the overlays needed for basejails
