@@ -632,6 +632,11 @@ __check_children () {
 __mount_basejail () {
     local _fulluuid="$1"
     local _mountopts="-t unionfs -o noatime,copymode=transparent"
+    local _jfs=$(zfs list -rH ${pool}${iocroot}/jails | grep "${_fulluuid}/root")    
+
+    for _fs in ${_jfs} ; do
+	mount ${_fs}
+    done
 
     # Mount the overlays needed for basejails
     mount ${_mountopts} \
