@@ -633,7 +633,7 @@ __mount_basejail () {
     local _fulluuid="$1"
     local _mountopts="-t unionfs -o noatime,copymode=transparent"
     local _jfs=$(zfs list -o name -rH ${pool}${iocroot}/jails | grep "${_fulluuid}$")    
-    local _jfss=$(zfs list -o name -rH ${pool}${iocroot}/jails | | grep "${_fulluuid}" | grep -Ev "${_fulluuid}$")    
+    local _jfss=$(zfs list -o name -rH ${pool}${iocroot}/jails | grep "${_fulluuid}" | grep -Ev '${_fulluuid}$')    
 
     for _fss in ${_jfs} ; do
 	zfs mount ${_fs}
