@@ -326,10 +326,10 @@ __create_jail () {
             ${iocroot}/jails/${uuid}/root/etc/rc.conf
     fi
 
-    if [ ! -e "${iocroot}/jails/${uuid}/root/etc/resolv.conf" ] ; then
-        __resolv_conf ${uuid} ${pool}${iocroot}/jails/${uuid} > \
-            ${iocroot}/jails/${uuid}/root/etc/resolv.conf
-    fi
+#    if [ ! -e "${iocroot}/jails/${uuid}/root/etc/resolv.conf" ] ; then
+#        __resolv_conf ${uuid} ${pool}${iocroot}/jails/${uuid} > \
+#            ${iocroot}/jails/${uuid}/root/etc/resolv.conf
+#    fi
 
     for _prop in "$@" ; do
         _pname="$(echo ${_prop} | awk 'BEGIN { FS = "=" } ; { print $1 }')"
@@ -471,10 +471,10 @@ __clone_jail () {
     fi
 
     # Check if resolv.conf already exists otherwise create it
-    if [ ! -e ${iocroot}/jails/${uuid}/root/etc/resolv.conf ] ; then
-        __resolv_conf ${uuid} ${pool}${iocroot}/jails/${uuid} > \
-            ${iocroot}/jails/${uuid}/root/etc/resolv.conf
-    fi
+#    if [ ! -e ${iocroot}/jails/${uuid}/root/etc/resolv.conf ] ; then
+#        __resolv_conf ${uuid} ${pool}${iocroot}/jails/${uuid} > \
+#            ${iocroot}/jails/${uuid}/root/etc/resolv.conf
+#    fi
 
     # configure the jail mountpoint
 #    __hack88_mount ${uuid} ${pool}${iocroot}/jails/${uuid}

@@ -253,10 +253,10 @@ __fetch_plugin_thick () {
         __jail_rc_conf >> ${_jail_path}/root/etc/rc.conf
     fi
 
-    if [ ! -e "${_jail_path}/root/etc/resolv.conf" ] ; then
-        __resolv_conf ${uuid} ${pool}/iocage/jails/${uuid} > \
-        ${_jail_path}/root/etc/resolv.conf
-    fi
+#    if [ ! -e "${_jail_path}/root/etc/resolv.conf" ] ; then
+#        __resolv_conf ${uuid} ${pool}/iocage/jails/${uuid} > \
+#        ${_jail_path}/root/etc/resolv.conf
+#    fi
 
     for _prop in "$@" ; do
         _pname="$(echo ${_prop} | awk 'BEGIN { FS = "=" } ; { print $1 }')"
