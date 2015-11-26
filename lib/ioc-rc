@@ -228,10 +228,10 @@ __start_jail () {
 
     if [ $_jzfs == "on" ] ; then
         zfs jail ioc-${_fulluuid} ${_jzfs_dataset}
-
-	# NOTE: mount -a INSTEAD OF zfs mount -a
-        jexec ioc-${_fulluuid} mount -a
     fi
+    
+    # NOTE: mount -a INSTEAD OF zfs mount -a
+    jexec ioc-${_fulluuid} mount -a
 
 #    __resolv_conf ${_fulluuid} ${_dataset} > ${_jail_path}/root/etc/resolv.conf &
     echo -n "  + Starting services"
@@ -540,6 +540,8 @@ __stop_jail () {
     else
         echo "    FAILED"
     fi
+
+    jexec ioc-${_fulluuid} umount -a
 
     umount -afvF "${_jail_path}/fstab" > /dev/null 2>&1
     umount "${_jail_path}/root/dev/fd" > /dev/null 2>&1
