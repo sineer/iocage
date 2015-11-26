@@ -184,16 +184,16 @@ __reclone_basejail () {
             \"${pool}${iocroot}/jails/${_fulluuid}/root\""
     fi
 
-    # Make sure the usr/home directory exists
-    if [ ! -e "${iocroot}/base/${_jail_base}/root/usr/home" ] ; then
-        mkdir ${iocroot}/base/${_jail_base}/root/usr/home
-        cd ${iocroot}/base/${_jail_base}/root && ln -s usr/home home 2>&1
-    fi
+#     # Make sure the /home directory exists
+#     if [ ! -e "${iocroot}/base/${_jail_base}/root/home" ] ; then
+#         mkdir ${iocroot}/base/${_jail_base}/root/home
+# #        cd ${iocroot}/base/${_jail_base}/root && ln -s usr/home home 2>&1
+#     fi
 
-    # Make sure the usr/ports directory exists
-    if [ ! -e "${iocroot}/base/${_jail_base}/root/usr/ports" ] ; then
-        mkdir ${iocroot}/base/${_jail_base}/root/usr/ports
-    fi
+#     # Make sure the usr/ports directory exists
+#     if [ ! -e "${iocroot}/base/${_jail_base}/root/usr/ports" ] ; then
+#         mkdir ${iocroot}/base/${_jail_base}/root/usr/ports
+#     fi
 }
 
 # This creates jails----------------------------------------------------
@@ -288,8 +288,8 @@ __create_jail () {
         mkdir  -p ${iocroot}/jails/${uuid}/_/usr/local
         mkdir     ${iocroot}/jails/${uuid}/_/var
         mkdir     ${iocroot}/jails/${uuid}/_/etc
-        mkdir     ${iocroot}/jails/${uuid}/_/usr/ports
-        mkdir     ${iocroot}/jails/${uuid}/_/usr/home
+#        mkdir     ${iocroot}/jails/${uuid}/_/usr/ports
+        mkdir     ${iocroot}/jails/${uuid}/_/home
         mkdir     ${iocroot}/jails/${uuid}/_/root
         mount  -t unionfs -o noatime,copymode=transparent \
                   ${iocroot}/jails/${uuid}/_/etc/ \
@@ -651,8 +651,8 @@ __mount_basejail () {
         ${iocroot}/jails/${_fulluuid}/_/root \
         ${iocroot}/jails/${_fulluuid}/root/root
     mount ${_mountopts} \
-        ${iocroot}/jails/${_fulluuid}/_/usr/home \
-        ${iocroot}/jails/${_fulluuid}/root/usr/home
+        ${iocroot}/jails/${_fulluuid}/_/home \
+        ${iocroot}/jails/${_fulluuid}/root/home
     mount ${_mountopts} \
         ${iocroot}/jails/${_fulluuid}/_/usr/local \
         ${iocroot}/jails/${_fulluuid}/root/usr/local
@@ -680,7 +680,7 @@ __umount_basejail () {
     umount ${iocroot}/jails/${_fulluuid}/root/root      > /dev/null 2>&1
     umount ${iocroot}/jails/${_fulluuid}/root/etc       > /dev/null 2>&1
     umount ${iocroot}/jails/${_fulluuid}/root/usr/local > /dev/null 2>&1
-    umount ${iocroot}/jails/${_fulluuid}/root/usr/home  > /dev/null 2>&1
+    umount ${iocroot}/jails/${_fulluuid}/root/home  > /dev/null 2>&1
     umount ${iocroot}/jails/${_fulluuid}/root/usr/ports > /dev/null 2>&1
     umount ${iocroot}/jails/${_fulluuid}/root/var       > /dev/null 2>&1
     umount ${iocroot}/jails/${_fulluuid}/root/tmp       > /dev/null 2>&1
