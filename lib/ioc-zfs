@@ -148,7 +148,7 @@ __reclone_basejail () {
 
     
     local _jfs=$(zfs list -o name -rH ${pool}${iocroot}/jails | grep "${_fulluuid}$")    
-    local _jfss=$(zfs list -o name -rH ${pool}${iocroot}/jails | grep "${_fulluuid}" | grep -Ev '${_fulluuid}$')    
+    local _jfss=$(zfs list -o name -rH ${pool}${iocroot}/jails | grep "${_fulluuid}" | grep -Ev '${_fulluuid}$' | grep -Ev '${_fulluuid}/data')    
 
     zfs mount ${_jfs} > /dev/null 2>&1
     for _fs in ${_jfss} ; do
