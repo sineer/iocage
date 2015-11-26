@@ -487,6 +487,9 @@ __stop_jail () {
         exit 1
     fi
 
+    # RUN umount -a before stopping jail!
+    jexec ioc-${_fulluuid} umount -a
+    
     echo "* Stopping ${_fulluuid} (${_tag})"
 
     echo -n "  + Running pre-stop"
@@ -540,8 +543,6 @@ __stop_jail () {
     else
         echo "    FAILED"
     fi
-
-    jexec ioc-${_fulluuid} umount -a
 
     umount -afvF "${_jail_path}/fstab" > /dev/null 2>&1
     umount "${_jail_path}/root/dev/fd" > /dev/null 2>&1
