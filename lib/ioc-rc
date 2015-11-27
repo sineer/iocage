@@ -544,6 +544,9 @@ __stop_jail () {
         echo "    FAILED"
     fi
 
+    # try umount'ing jail's root/etc/fstab again now that the jail is dead
+    umount -afvF "${_jail_path}/_/etc/fstab" > /dev/null 2>&1
+    
     umount -afvF "${_jail_path}/fstab" > /dev/null 2>&1
     umount "${_jail_path}/root/dev/fd" > /dev/null 2>&1
     umount "${_jail_path}/root/dev"    > /dev/null 2>&1
