@@ -230,8 +230,6 @@ __start_jail () {
         zfs jail ioc-${_fulluuid} ${_jzfs_dataset}
     fi
     
-    jexec ioc-${_fulluuid} zfs mount -a
-
 #    __resolv_conf ${_fulluuid} ${_dataset} > ${_jail_path}/root/etc/resolv.conf &
     echo -n "  + Starting services"
     setfib $_exec_fib jexec ioc-${_fulluuid} $_exec_start \
@@ -522,9 +520,6 @@ __stop_jail () {
             __stop_legacy_networking "${_fulluuid}" "${_dataset}"
         fi
     fi
-    
-    # RUN umount -a before stopping jail!
-    jexec ioc-${_fulluuid} umount -a
     
     echo -n "  + Removing jail process"
     jail -r "ioc-${_fulluuid}" 1> /dev/null
