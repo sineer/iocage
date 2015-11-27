@@ -486,9 +486,6 @@ __stop_jail () {
         echo "* ${_fulluuid}: is already down" >&2
         exit 1
     fi
-
-    # RUN umount -a before stopping jail!
-    jexec ioc-${_fulluuid} umount -a
     
     echo "* Stopping ${_fulluuid} (${_tag})"
 
@@ -526,7 +523,10 @@ __stop_jail () {
             __stop_legacy_networking "${_fulluuid}" "${_dataset}"
         fi
     fi
-
+    
+    # RUN umount -a before stopping jail!
+    jexec ioc-${_fulluuid} umount -a
+    
     echo -n "  + Removing jail process"
     jail -r "ioc-${_fulluuid}" 1> /dev/null
 
