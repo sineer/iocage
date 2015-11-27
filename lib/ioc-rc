@@ -230,8 +230,7 @@ __start_jail () {
         zfs jail ioc-${_fulluuid} ${_jzfs_dataset}
     fi
     
-    # NOTE: mount -a INSTEAD OF zfs mount -a
-    eval "jexec ioc-${_fulluuid} mount -a"
+    jexec ioc-${_fulluuid} zfs mount -a
 
 #    __resolv_conf ${_fulluuid} ${_dataset} > ${_jail_path}/root/etc/resolv.conf &
     echo -n "  + Starting services"
