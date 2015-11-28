@@ -23,7 +23,7 @@ __start_jail () {
     _jail_path="$(__get_jail_prop mountpoint $_fulluuid $_dataset)"
     _jail_base="$(__get_jail_prop base $_fulluuid $_dataset)"
     _template="$(__get_jail_prop template $_fulluuid $_dataset)"
-    _template="$(zfs get readonly $_dataset)"
+    _template="$(zfs get -H -o value readonly $_dataset)"
     _cpuset="$(__get_jail_prop cpuset $_fulluuid $_dataset)"
     _procfs="$(__get_jail_prop mount_procfs $_fulluuid $_dataset)"
     _linprocfs="$(__get_jail_prop mount_linprocfs $_fulluuid $_dataset)"
