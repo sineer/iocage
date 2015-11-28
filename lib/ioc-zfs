@@ -158,19 +158,19 @@ __reclone_basejail () {
     
     zfs destroy -f ${pool}${iocroot}/jails/${_fulluuid}/root > /dev/null 2>&1
 
-    if [ $? -eq 1 ] ; then
-        _jail_datasets="$(__find_jail ALL)"
-        for _fs in ${_jail_datasets} ; do
-            _origin="$(zfs get -H -o value origin ${_fs} | cut -f1 -d@)"
-            _tag="$(zfs get -H -o value org.freebsd.iocage:tag ${_fs})"
-            _uuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid ${_fs})"
-
-            if [ "${_origin}" = "${_dataset}" ] ; then
-                __info "jail has dependent clone, uuid: ${_uuid} (${_tag})"
-            fi
-        done
-        __info "${_jail_tag} will not be up to date with base: ${_jail_base}"
-    else
+#    if [ $? -eq 1 ] ; then
+#        _jail_datasets="$(__find_jail ALL)"
+#        for _fs in ${_jail_datasets} ; do
+#            _origin="$(zfs get -H -o value origin ${_fs} | cut -f1 -d@)"
+#            _tag="$(zfs get -H -o value org.freebsd.iocage:tag ${_fs})"
+#            _uuid="$(zfs get -H -o value org.freebsd.iocage:host_hostuuid ${_fs})"
+#
+#            if [ "${_origin}" = "${_dataset}" ] ; then
+#                __info "jail has dependent clone, uuid: ${_uuid} (${_tag})"
+#            fi
+#        done
+#        __info "${_jail_tag} will not be up to date with base: ${_jail_base}"
+#    else
         # Destroy the old datasets
         for _fs in ${_fs_list} ; do
             zfs destroy -f ${_fs}
@@ -182,7 +182,7 @@ __reclone_basejail () {
         eval "zfs clone -o readonly=on ${_inherit_props} \
             \"${pool}${iocroot}/base/${_jail_base}/root@${_fulluuid}\" \
             \"${pool}${iocroot}/jails/${_fulluuid}/root\""
-    fi
+#    fi
 
 #     # Make sure the /home directory exists
 #     if [ ! -e "${iocroot}/base/${_jail_base}/root/home" ] ; then
