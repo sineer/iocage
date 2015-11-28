@@ -69,7 +69,6 @@ __start_jail () {
         fi
     done
 
-    echo $_readonly
     if [ $_readonly == "on" ] ; then
 	echo "  INFO: $_tag is READ-ONLY. Maybe a SINK?"
 	return
