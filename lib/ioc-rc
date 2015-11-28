@@ -1,7 +1,7 @@
 #!/bin/sh
 
 __start_jail () {
-    local _fulluuid_dataset _dataset _fulluuid _jail_type \
+    local _fulluuid_dataset _dataset _fulluuid _jail_type _readonly \
           _tag _jail_hostid _jail_path _jail_base _template _cpuset \
           _procfs _state _vnet _nics _jzfs_dataset _jzfs _clone_check \
           _exec_fib _exec_start _bpf _dhcp _devfs_string _linprocfs
@@ -69,7 +69,7 @@ __start_jail () {
         fi
     done
 
-    if [ $_readonly == "yes" ] ; then
+    if [ $_readonly == "on" ] ; then
 	echo "  INFO: $_tag is READ-ONLY. Maybe a SINK?"
 	return
     fi
