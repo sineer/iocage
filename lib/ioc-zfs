@@ -684,6 +684,11 @@ __umount_basejail () {
     umount ${iocroot}/jails/${_fulluuid}/root/usr/ports > /dev/null 2>&1
     umount ${iocroot}/jails/${_fulluuid}/root/var       > /dev/null 2>&1
     umount ${iocroot}/jails/${_fulluuid}/root/tmp       > /dev/null 2>&1
+
+    # Destroy basejail clone
+    zfs destroy -f ${pool}${iocroot}/jails/${_fulluuid}/root > /dev/null 2>&1 
+    zfs destroy -fr ${pool}${iocroot}/base@${_fulluuid} > /dev/null 2>&1
+
 }
 
 # Accepts one argument. It uses that argument as the name/UUID.
