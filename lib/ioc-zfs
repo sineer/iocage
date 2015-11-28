@@ -178,7 +178,7 @@ __reclone_basejail () {
         # Set up the new RELEASE root dataset to be cloned from
         zfs snapshot ${pool}${iocroot}/base/${_jail_base}/root@${_fulluuid}
 
-	mkdir ${pool}${iocroot}/base/${_jail_base}/root > /dev/null 2>&1
+	mkdir ${pool}${iocroot}/jails/${_fulluuid}/root > /dev/null 2>&1
 	
         # Recloning the root dataset and remounting the children
         eval "zfs clone -o readonly=on ${_inherit_props} \
