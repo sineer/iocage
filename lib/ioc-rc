@@ -235,7 +235,9 @@ __start_jail () {
     if [ $_jzfs == "on" ] ; then
         zfs jail ioc-${_fulluuid} ${_jzfs_dataset}
     fi
-    jexec "ioc-${_fulluuid}" mount -a    
+
+    jexec "ioc-${_fulluuid}" mount -a  > /dev/null 2>&1
+
 #    __resolv_conf ${_fulluuid} ${_dataset} > ${_jail_path}/root/etc/resolv.conf &
     echo -n "  + Starting services"
     setfib $_exec_fib jexec ioc-${_fulluuid} $_exec_start \
@@ -527,8 +529,8 @@ __stop_jail () {
         fi
     fi
 
-    jexec "ioc-${_fulluuid}" umount -a
-    
+    jexec "ioc-${_fulluuid}" umount -a  > /dev/null 2>&1
+
     echo -n "  + Removing jail process"
     jail -r "ioc-${_fulluuid}" 1> /dev/null
 
