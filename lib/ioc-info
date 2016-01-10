@@ -53,8 +53,6 @@ __get_default_prop () {
     fi
 }
 
-# Find and return the jail's top level ZFS dataset
-
 __find_jail () {
     local _name _jlist _jail _tag _found
     _name="$1"
@@ -113,9 +111,9 @@ __list_jails () {
     fi
 
     if [ ! -z "${_switch}" -a "${_switch}" == "-s" ] ; then
-        __list_jails_sinks
+        __list_sinks
         exit 0
-    f
+    fi
 
     if [ ! -z "${_switch}" -a "${_switch}" != "-t" ] ; then
         __die "invalid switch ${_switch}"
@@ -248,10 +246,14 @@ __list_jails_warden () {
     done
 }
 
-__list_jails_sinks () {
+__find_sink() {
+    # TODO ...
+}
+
+__list_sinks () {
     local _sinks _switch
 
-    _sinks=$(__find_sinks ALL)
+    _sinks=$(__find_sink ALL)
     _switch=$1
 
     for _sink in ${sinks} ; do
