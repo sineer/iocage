@@ -112,6 +112,11 @@ __list_jails () {
         exit 0
     fi
 
+    if [ ! -z "${_switch}" -a "${_switch}" == "-s" ] ; then
+        __list_jails_sinks
+        exit 0
+    f
+
     if [ ! -z "${_switch}" -a "${_switch}" != "-t" ] ; then
         __die "invalid switch ${_switch}"
     fi
@@ -243,6 +248,51 @@ __list_jails_warden () {
     done
 }
 
+__list_jails_sinks () {
+    local _sinks _switch
+
+    _sinks=$(__find_sinks ALL)
+    _switch=$1
+
+    for _sink in ${sinks} ; do
+        _uuid=$(zfs get -H -o value org.freebsd.iocage:host_hostuuid ${_jail})
+        _boot=$(zfs get -H -o value org.freebsd.iocage:boot ${_jail})
+        _tag=$(zfs get -H -o value org.freebsd.iocage:tag ${_jail})
+        _template=$(zfs get -H -o value org.freebsd.iocage:template ${_jail})
+        _interfaces=$(zfs get -H -o value org.freebsd.iocage:interfaces ${_jail})
+        _ip4_addr=$(zfs get -H -o value org.freebsd.iocage:ip4_addr ${_jail})
+        _ip6_addr=$(zfs get -H -o value org.freebsd.iocage:ip6_addr ${_jail})
+        _vnet=$(zfs get -H -o value org.freebsd.iocage:vnet ${_jail})
+        _vnet0_mac=$(zfs get -H -o value org.freebsd.iocage:vnet0_mac ${_jail})
+        _vnet1_mac=$(zfs get -H -o value org.freebsd.iocage:vnet1_mac ${_jail})
+        _vnet2_mac=$(zfs get -H -o value org.freebsd.iocage:vnet2_mac ${_jail})
+        _vnet3_mac=$(zfs get -H -o value org.freebsd.iocage:vnet3_mac ${_jail})
+        _type=$(zfs get -H -o value org.freebsd.iocage:type ${_jail})
+
+        # get jid for iocage jails
+        _jid=$(jls -j ioc-${_uuid} jid 2> /dev/null)
+        if [ -z "${_jid}"  ] ; then
+            _jid="-"
+        fi
+
+        _ioc_jids=${_ioc_jids}" "${_jid}
+
+        if [ "${_jid}" == '-' ] ; then
+            _state=down
+        else
+            _state=up
+        fi
+
+        printf "%s\n" "id: ${_jid}" "host: ${_tag}" "ipv4: ${_ip4_addr}" \
+               "alias-ipv4: " "bridge-ipv4: " "alias-bridge-ipv4: " \
+               "defaultrouter-ipv4: " "ipv6: ${_ip6_addr}" "alias-ipv6: " \
+               "bridge-ipv6: " "alias-bridge-ipv6: " "defaultrouter-ipv6: " \
+               "autostart: ${_boot}" "vnet: ${_vnet}" "status: ${_state}" \
+               "type: ${_type}"
+    done
+
+}
+
 __print_disk () {
     local _format="%-13s  %-6s  %-5s  %-5s  %-5s  %-5s %s\n"
 
@@ -299,7 +349,7 @@ __find_mypool () {
     fi
 }
 
-# Get jail properties
+# Get jail propertie
 # Expects: property as $1 and UUID|jail name as $2 optionally dataset as $3
 __get_jail_prop () {
     local _value _found _name _property _dataset _CONF \
